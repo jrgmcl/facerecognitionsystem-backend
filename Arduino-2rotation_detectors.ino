@@ -8,7 +8,7 @@ void setup()
 }
 void loop()
 {
-  //30 Counts = 3 Seconds window
+  //30 Counts = 3 Second window
   for (int count = 0; count < 30; count++) {
     byte buttonState0 = digitalRead(BUTTON_PIN0);
     byte buttonState1 = digitalRead(BUTTON_PIN1);
@@ -32,8 +32,12 @@ void loop()
       	//Button is not pressed
 		
   	}
-    Serial.println(count);
+    Serial.print("|");
     delay(100);
   }
-  Serial.println("-----------3 Second passed-----------");
+  
+  for (int i=0; i<8; i++){
+    Serial.println("");
+  }
+  Serial.println("--------3 Second passed--------");
 }
