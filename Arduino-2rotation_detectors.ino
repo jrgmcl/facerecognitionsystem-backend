@@ -1,34 +1,34 @@
-#define BUTTON_PIN0 2
-#define BUTTON_PIN1 3
+#define disc0 2
+#define disc1 3
 void setup()
 {
   Serial.begin(9600);
-  pinMode(BUTTON_PIN0, INPUT_PULLUP);
-  pinMode(BUTTON_PIN1, INPUT_PULLUP);
+  pinMode(disc0, INPUT_PULLUP);
+  pinMode(disc1, INPUT_PULLUP);
 }
 void loop()
 {
   //30 Counts = 3 Second window
   for (int count = 0; count < 30; count++) {
-    byte buttonState0 = digitalRead(BUTTON_PIN0);
-    byte buttonState1 = digitalRead(BUTTON_PIN1);
+    byte discState0 = digitalRead(disc0);
+    byte discState1 = digitalRead(disc1);
     
     //Button0 Contact
-  	if (buttonState0 == LOW) {
+  	if (discState0 == LOW) {
       	Serial.println("Button0 is pressed"); break;
   	}
     
     //Button1 Non-contact
-  	else if (buttonState1 == HIGH){
+  	else if (discState1 == HIGH){
       	//Button is not pressed
   	}
     
     //Button1 Contact
-  	if (buttonState1 == LOW) {
+  	if (discState1 == LOW) {
       	Serial.println("Button1 is pressed"); break;
   	}
     //Button0 Non-contact
-  	else if (buttonState0 == HIGH){
+  	else if (discState0 == HIGH){
       	//Button is not pressed
 		
   	}
