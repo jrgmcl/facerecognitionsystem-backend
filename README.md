@@ -11,6 +11,7 @@
 - MariaDB
 - Apache2
 - PHPMyAdmin
+- mysqlclient
 
 ## Arduino UNO R3 required libraries:
 - MLX90614
