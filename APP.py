@@ -7,9 +7,9 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread
 
 import datetime
 import cv2
@@ -17,133 +17,29 @@ import numpy as np
 import os
 import sys
 
-from images import image_source
 from images import rsrc
 
 dt = datetime.datetime.now()
 
-dataset_path = '/home/pi/Desktop/FACIALRECOGNITION/DATASETS'
-users = os.listdir(dataset_path)
-os.chdir("/home/pi/opencv/data/haarcascades")
-recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read('/home/pi/Desktop/FACIALRECOGNITION/TRAINER/trainer.yml')
-detector = cv2.CascadeClassifier("/home/pi/opencv/data/haarcascades/haarcascade_frontalface_default.xml")
 
-font = cv2.FONT_HERSHEY_SIMPLEX
-
-#iniciate id counter
-id = 0
-
-#Generate the names on the dataset
-dataset_path = '/home/pi/Desktop/FACIALRECOGNITION/DATASETS'
-users = os.listdir(dataset_path)
-
-
-#Put the user's name in array
-first_name = ['Unknown']
-last_name = ['Unknown']
-for newdir in users:
-    split_filename = newdir.split('.')
-    first_name.append(split_filename[1])
-    last_name.append(split_filename[2])
-
-
-
-width = 1280
-height = 360
-new_size = (width, height) #Camera size for 2 cameras
-
-# Define min window size to be recognized as a face
-minW = 640*0.4
-minH = height*0.4
-
-# Size for preview
-preview_height = 640*0.5
-preview_width = height*0.5
-
-sizes = [448, 320, 128]
-sizecount = 0
-datacount = 0
-
-faceSamples=[]
-ids = []
-
-
-class VideoThread(QThread):
-    change_pixmap_signal = pyqtSignal(np.ndarray)
-    
-    def run(self):
-        cam = cv2.VideoCapture(0)
-        #Camera Size
-        cam.set(3, 1280) 
-        cam.set(4, 720)
-        while True:
-            ret, raw =cam.read()
-            stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) #Set the new size
-            crop1 = stretched[:360, :640] #Crop the camera 1
-            crop2 = stretched[:360, 640:1280]
-            
-            img = cv2.rotate(crop1, cv2.cv2.ROTATE_90_CLOCKWISE) # Flip vertically
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            
-            # Preview
-            preview_cam = cv2.resize(gray, (int(preview_width), int(preview_height)), interpolation = cv2.INTER_AREA)
-            
-            faces = detector.detectMultiScale(
-                gray,
-                scaleFactor = 1.11,
-                minNeighbors = 20,
-                minSize = (int(minW), int(minH)),
-               )
-
-            for(x,y,w,h) in faces:
-                x = int(x * 0.5)
-                y = int(y * 0.5)
-                w = int(w * 0.5)
-                h = int(h * 0.5)
-                cv2.rectangle(preview_cam, (x,y), (x+w,y+h), (0,255,0), 2)
-                id, confidence = recognizer.predict(gray[y:y+h,x:x+w])
-
-                # Check if confidence is less them 100 ==> "0" is perfect match
-                if (confidence < 100):
-                    id = first_name[id]
-                    confidence = "  {0}%".format(round(100 - confidence))
-                    print("\n [Recognized] " + str(id) + str(confidence))
-                else:
-                    id = first_name[0]
-                    confidence = "  {0}%".format(round(100 - confidence))
-            if ret:
-                self.change_pixmap_signal.emit(preview_cam)
-                
-class Ui_MainWindow(QWidget):
-        
-    def __init__(self):
+class Ui_MainWindow(object):
+    def __init__(self, MainWindow):
         super().__init__()
-        #Shadows
-        shadow0 = QGraphicsDropShadowEffect()
-        shadow1 = QGraphicsDropShadowEffect()
-        shadow2 = QGraphicsDropShadowEffect()
-        shadow3 = QGraphicsDropShadowEffect()
-        shadow0.setBlurRadius(25)
-        shadow1.setBlurRadius(25)
-        shadow2.setBlurRadius(25)
-        shadow3.setBlurRadius(25)
-        
-        self.setObjectName("MainWindow")
-        self.resize(1200, 1024)
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(1200, 1024)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.sizePolicy().hasHeightForWidth())
-        self.setSizePolicy(sizePolicy)
-        self.setMinimumSize(QtCore.QSize(1200, 1024))
-        self.setMaximumSize(QtCore.QSize(1200, 1024))
-        self.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
-        self.setAutoFillBackground(False)
-        self.setStyleSheet("")
-        self.setInputMethodHints(QtCore.Qt.ImhNone)
- 
-        #self.centralwidget = QtWidgets.QWidget(MainWindow)
+        sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
+        MainWindow.setSizePolicy(sizePolicy)
+        MainWindow.setMinimumSize(QtCore.QSize(1200, 1024))
+        MainWindow.setMaximumSize(QtCore.QSize(1200, 1024))
+        MainWindow.setCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
+        MainWindow.setAutoFillBackground(False)
+        MainWindow.setStyleSheet("")
+        MainWindow.setInputMethodHints(QtCore.Qt.ImhNone)
+        MainWindow.setDocumentMode(False)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
         font = QtGui.QFont()
         font.setFamily("System")
         font.setBold(True)
@@ -179,7 +75,6 @@ class Ui_MainWindow(QWidget):
         self.frame0.setFrameShape(QtWidgets.QFrame.Box)
         self.frame0.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame0.setLineWidth(2)
-        self.frame0.setGraphicsEffect(shadow0)
         self.frame0.setMidLineWidth(0)
         self.frame0.setObjectName("frame0")
         self.fr_title = QtWidgets.QLabel(self.frame0)
@@ -196,30 +91,11 @@ class Ui_MainWindow(QWidget):
         self.fr_title.setAlignment(QtCore.Qt.AlignCenter)
         self.fr_title.setWordWrap(False)
         self.fr_title.setObjectName("fr_title")
-        
-        
-        #Camera
-        self.camera_0 = QtWidgets.QLabel(self.frame0)
+        self.camera_0 = QtWidgets.QGraphicsView(self.frame0)
         self.camera_0.setGeometry(QtCore.QRect(40, 80, 180, 320))
-        #self.camera_0.setStyleSheet("background-color: rgb(129, 129, 129);\n"
-#"border-radius: 0px;")
+        self.camera_0.setStyleSheet("background-color: rgb(129, 129, 129);\n"
+"border-radius: 0px;")
         self.camera_0.setObjectName("camera_0")
-        self.thread = VideoThread()
-        self.thread.change_pixmap_signal.connect(self.update_video)
-        self.thread.start()
-        
-        # create the label that holds the image
-        self.image_label = QtWidgets.QLabel(self.frame0)
-        self.image_label.resize(self.disply_width, self.display_height)
-        self.image_label.setGeometry(QtCore.QRect(40, 80, 180, 320))
-        # create the video capture thread
-        self.thread = VideoThread()
-        # connect its signal to the update_image slot
-        self.thread.change_pixmap_signal.connect(self.update_image)
-        # start the thread
-        self.thread.start()
-        
-        
         self.bg_0 = QtWidgets.QGraphicsView(self.frame0)
         self.bg_0.setGeometry(QtCore.QRect(0, 0, 520, 850))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -369,14 +245,12 @@ class Ui_MainWindow(QWidget):
         self.instruct.raise_()
         self.datetime = QtWidgets.QWidget(self.screen0)
         self.datetime.setGeometry(QtCore.QRect(40, 20, 520, 94))
-        
         font = QtGui.QFont()
         font.setPointSize(16)
         self.datetime.setFont(font)
         self.datetime.setStyleSheet("background-color: rgba(255, 255, 255, 255);\n"
 "border-radius: 25px;\n"
 "")
-        self.datetime.setGraphicsEffect(shadow1)
         self.datetime.setObjectName("datetime")
         self.Date = QtWidgets.QLabel(self.datetime)
         self.Date.setGeometry(QtCore.QRect(160, 10, 200, 30))
@@ -443,7 +317,6 @@ class Ui_MainWindow(QWidget):
         self.frame0_2.setFont(font)
         self.frame0_2.setStyleSheet("border-radius: 25px;\n"
 "")
-        self.frame0_2.setGraphicsEffect(shadow2)
         self.frame0_2.setFrameShape(QtWidgets.QFrame.Box)
         self.frame0_2.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame0_2.setLineWidth(2)
@@ -623,7 +496,6 @@ class Ui_MainWindow(QWidget):
         self.datetime_2.setStyleSheet("background-color: rgba(255, 255, 255, 255);\n"
 "border-radius: 25px;\n"
 "")
-        self.datetime_2.setGraphicsEffect(shadow3)
         self.datetime_2.setObjectName("datetime_2")
         self.Date_2 = QtWidgets.QLabel(self.datetime_2)
         self.Date_2.setGeometry(QtCore.QRect(160, 10, 200, 30))
@@ -672,8 +544,8 @@ class Ui_MainWindow(QWidget):
 "</style></head><body style=\" font-family:\'Montserrat SemiBold\'; font-size:8pt; font-weight:600; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Montserrat\'; font-size:28pt; color:#ffffff;\">QR Code</span></p></body></html>"))
         self.status.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">No face detected!</span></p></body></html>"))
-        self.Date.setText(_translate("MainWindow", str(dt.strftime("%a, %b %d, %Y"))))
-        self.Time.setText(_translate("MainWindow", str(dt.strftime("%I:%M%p"))))
+        self.Date.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\">&lt;Date&gt;</p></body></html>"))
+        self.Time.setText(_translate("MainWindow", "<Time>"))
         self.fr_title_2.setText(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
@@ -688,37 +560,12 @@ class Ui_MainWindow(QWidget):
 "</style></head><body style=\" font-family:\'Montserrat SemiBold\'; font-size:8pt; font-weight:600; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Montserrat\'; font-size:28pt; color:#ffffff;\">QR Code</span></p></body></html>"))
         self.status_2.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">No face detected!</span></p></body></html>"))
-        self.Date_2.setText(_translate("MainWindow", str(dt.strftime("%a, %b %d, %Y"))))
-        self.Time_2.setText(_translate("MainWindow", str(dt.strftime("%I:%M%p"))))
-        
-    @pyqtSlot(np.ndarray)
-    def update_video(self, raw):
-        qt_img = self.convert_cv_qt(raw)
-        self.camera_0.setPixmap(qt_img)
-        
-    def convert_cv_qt(self, preview_cam):
-        h, w, ch = preview_cam.shape
-        bytes_per_line = ch * w
-        convert_to_qt_format = QtGui.QImage(preview_cam, w, h, bytes_per_line, QtGui.QImage.Format_RGB888)
-        p = convert_to_qt_format.scaled(640, 360, Qt.KeepAspectRatio)
-        return QPixmap.fromImage(p)
-    
-        
-    def update_label(self):
-        dt = datetime.datetime.now()
-        self.Date.setText(str(dt.strftime("%a, %b %d, %Y")))
-        self.Time.setText(str(dt.strftime("%I:%M%p")))
-        
-        
-
+        self.Date_2.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\">&lt;Date&gt;</p></body></html>"))
+        self.Time_2.setText(_translate("MainWindow", "<Time>"))
 
 if __name__ == "__main__":
+
     app = QtWidgets.QApplication(sys.argv)
-    a = Ui_MainWindow()
-    a.show()
+    MainWindow = QtWidgets.QMainWindow()
+    MainWindow.show()
     sys.exit(app.exec_())
-    
-    
-    
-    
-    
