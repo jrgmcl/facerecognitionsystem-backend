@@ -152,17 +152,14 @@ class VideoThread(QThread):
             
             ret, raw = cap.read()
             
-            #Set the new size
-            stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) 
             
-            #Crop the camera 1 & 2
-            cam1_stretched = stretched[:640, :360] 
-            cam2_stretched = stretched[360:, 1280:640]
+            cam1_stretched = stretched[:360, :640] 
+            cam2_stretched = stretched[:360, 640:1280]
     
-            #camera1 = cv2.rotate(cam1_stretched, cv2.cv2.ROTATE_90_CLOCKWISE)
-            #camera2 = cv2.rotate(cam2_stretched, cv2.cv2.ROTATE_90_CLOCKWISE)
-            camera1 = cv2.cvtColor(cam1_stretched, cv2.COLOR_BGR2GRAY)
-            camera2 = cv2.cvtColor(cam2_stretched, cv2.COLOR_BGR2GRAY)
+            cam1_colored = cv2.rotate(cam1_stretched, cv2.cv2.ROTATE_90_CLOCKWISE)
+            cam2_colored = cv2.rotate(cam2_stretched, cv2.cv2.ROTATE_90_CLOCKWISE)
+            camera1 = cv2.cvtColor(cam1_colored, cv2.COLOR_BGR2GRAY)
+            camera2 = cv2.cvtColor(cam2_colored, cv2.COLOR_BGR2GRAY)
             
             #Recognize face on camera 1 & 2
             faces1 = detector.detectMultiScale(
