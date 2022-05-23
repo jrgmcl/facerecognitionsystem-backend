@@ -22,11 +22,10 @@ cur = db.cursor()
 
 
 #File Paths
-dataset_path = '/home/pi/Desktop/FACIALRECOGNITION/DATASETS'
-users = os.listdir(dataset_path)
+dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 os.chdir("/home/pi/opencv/data/haarcascades")
 recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read('/home/pi/Desktop/FACIALRECOGNITION/TRAINER/trainer.yml')
+
 detector = cv2.CascadeClassifier("/home/pi/opencv/data/haarcascades/haarcascade_frontalface_default.xml")
 font = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -34,7 +33,6 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 id = 0
 
 #Generate the names on the dataset
-dataset_path = '/home/pi/Desktop/FACIALRECOGNITION/DATASETS'
 users = os.listdir(dataset_path)
 
 
@@ -50,7 +48,7 @@ for newdir in users:
 dt = datetime.datetime.now()
 
 d_name1 = "Name"
-d_name2 = "Name"
+d_name2 = "Test"
 d_course1 = "Course"
 d_course2 = "Course"
 d_temp1 = "Temperature"
@@ -149,6 +147,7 @@ class VideoThread(QThread):
         recognizer.save('/TRAINER/trainer.yml')
         print("\n [INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
         
+        recognizer.read('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
         
         while True:
             
@@ -192,7 +191,7 @@ class VideoThread(QThread):
 
                 # Check if confidence is less them 100 ==> "0" is perfect match
                 if (confidence < 100):
-                    id = first_name[id]
+                    d_name1 = first_name[id] + " " + last_name[id]
                     confidence = "  {0}%".format(round(100 - confidence))
                     print("\n [Recognized] " + str(id) + str(confidence))
                 else:
