@@ -35,8 +35,8 @@ first_name = ['Unknown']
 last_name = ['Unknown']
 for newdir in users:
     split_filename = newdir.split('.')
-    first_name.append(split_filename[1])
-    last_name.append(split_filename[2])
+    first_name.insert(int(split_filename[0]), split_filename[1])
+    last_name.insert(int(split_filename[0]), split_filename[2])
     
 #Get Date & Time before starting the application
 dt = datetime.datetime.now()
@@ -136,8 +136,11 @@ class VideoThread(QThread):
                     faces = detector.detectMultiScale(img_numpy)
                     
                     #Append faces and names to the array
-                    faceSamples.append(img_numpy)
-                    ids.append(id)
+                    faceSamples.insert(id, img_numpy)
+                    ids.insert(id, id)
+
+                    #faceSamples.append(img_numpy)
+                    #ids.append(id)
            
             return faceSamples, ids
 
@@ -149,10 +152,10 @@ class VideoThread(QThread):
         recognizer.read('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
         
         while True:
-            
             ret, raw = cap.read()
-            
-            
+
+            #Set the new size
+            stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) 
             cam1_stretched = stretched[:360, :640] 
             cam2_stretched = stretched[:360, 640:1280]
     
