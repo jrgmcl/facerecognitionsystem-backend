@@ -2,11 +2,11 @@ import cv2
 import numpy as np
 import os
 
-dataset_path = '/home/pi/Desktop/FACIALRECOGNITION/DATASETS'
+dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
 os.chdir("/home/pi/opencv/data/haarcascades")
 recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read('/home/pi/Desktop/FACIALRECOGNITION/TRAINER/trainer.yml')
+recognizer.read('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
 detector = cv2.CascadeClassifier("/home/pi/opencv/data/haarcascades/haarcascade_frontalface_default.xml")
 
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -15,18 +15,18 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 id = 0
 
 #Generate the names on the dataset
-dataset_path = '/home/pi/Desktop/FACIALRECOGNITION/DATASETS'
+dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
 
 
 #Put the user's name in array
-first_name = ['Unknown']
-last_name = ['Unknown']
+first_name = []
+last_name = []
 for newdir in users:
     split_filename = newdir.split('.')
-    first_name.append(split_filename[1])
-    last_name.append(split_filename[2])
-
+    first_name.insert(int(split_filename[0]), split_filename[1])
+    last_name.insert(int(split_filename[0]), split_filename[2])
+print(first_name)
 # Initialize and start realtime video capture
 cam = cv2.VideoCapture(0)
 cam.set(3, 1280) #Camera Size
@@ -75,9 +75,11 @@ while True:
         # Check if confidence is less them 100 ==> "0" is perfect match
         if (confidence < 100):
             id = first_name[id]
+            print (id)
             confidence = "  {0}%".format(round(100 - confidence))
         else:
-            id = first_name[0]
+            #id = first_name[0]
+            print ("Unknown")
             confidence = "  {0}%".format(round(100 - confidence))
 
     cv2.namedWindow('camera0', cv2.WINDOW_GUI_NORMAL|cv2.WINDOW_AUTOSIZE)

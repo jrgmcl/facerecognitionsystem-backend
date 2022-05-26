@@ -154,6 +154,7 @@ class VideoThread(QThread):
         print ("\n [INFO] Training faces. It will take a few seconds. Wait ...")
         faces, ids = getImagesAndLabels(dataset_path)
         recognizer.train(faces, np.array(ids))
+        os.remove('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
         recognizer.save('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
         print("\n [INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
         recognizer.read('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
@@ -188,25 +189,38 @@ class VideoThread(QThread):
                                             minNeighbors = 20,
                                             minSize = (int(minW), int(minH)),
                                            )
+            x1 = faces1
+            if len(x1) == 0:
+                d_name1 = "---"
+                d_course1 = "---"
+                d_status1 = "Please position your face in the middle of the camera"
             
-            #Compare recognized face to the database
-            for(x1,y1,w1,h1) in faces1:
+            else:
+                #Compare recognized face to the database
+                for(x1,y1,w1,h1) in faces1:
 
-                cv2.rectangle(camera1, (x1,y1), (x1+w1,y1+h1), (255,255,255), 2)
-                id, confidence = recognizer.predict(camera1[y1:y1+h1,x1:x1+w1])
+                    cv2.rectangle(camera1, (x1,y1), (x1+w1,y1+h1), (255,255,255), 2)
+                    id, confidence = recognizer.predict(camera1[y1:y1+h1,x1:x1+w1])
 
-                # Check if confidence is less them 100 ==> "0" is perfect match
-                if (confidence < 100):
-                    cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
-                    row = cur.fetchone()
-                    d_name1 = first_name[id] + " " + last_name[id]
-                    d_course1 = "test"
-                    d_status2 = "Recognized! Please wait..."
-                    confidence = "  {0}%".format(round(100 - confidence))
-                    print("\n [Recognized] " + str(id) + str(first_name[id]) + str(confidence))
-                else:
-                    id = first_name[0]
-                    confidence = "  {0}%".format(round(100 - confidence))
+                    # Check if confidence is less them 100 ==> "0" is perfect match
+                    if (confidence < 100):
+                        cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
+                        row = cur.fetchone()
+                        d_name1 = first_name[id] + " " + last_name[id]
+                        d_course1 = "test"
+                        d_status2 = "Recognized! Please wait..."
+                        confidence = "  {0}%".format(round(100 - confidence))
+                        print("\n [Recognized] " + str(id) + str(first_name[id]) + str(confidence))
+                        
+                        
+                        
+                    else:
+                        id = first_name[0]
+                        confidence = "  {0}%".format(round(100 - confidence))
+                        d_name1 = "Not Registered!"
+                dname_1 = None
+                
+                
             
             for(x2,y2,w2,h2) in faces2:
 
@@ -222,6 +236,9 @@ class VideoThread(QThread):
                     d_name2 = first_name[id] + " " + last_name[id]
                     d_course2 = str(row[4])
                     d_status2 = "Bye, you may now take your exit."
+                    self.signal_name2.emit(d_name2)
+                    self.signal_course2.emit(d_course2)
+                    self.signal_status2.emit(d_status2)
                     
                     
                 else:
@@ -230,21 +247,26 @@ class VideoThread(QThread):
                     d_name2 = "Name"
                     d_course2 = "Course"
                     d_status2 = "No registered user recognized!"
+                    self.signal_status2.emit(d_status2)
                 
-                self.signal_name1.emit(d_name1)
-                self.signal_name2.emit(d_name2)
-                self.signal_course1.emit(d_course1)
-                self.signal_course2.emit(d_course2)
-                self.signal_temp1.emit(d_temp1)
-                self.signal_status1.emit(d_status1)
-                self.signal_status2.emit(d_status2)
+            
+            self.signal_name1.emit(d_name1)
+            self.signal_course1.emit(d_course1)
+            self.signal_status1.emit(d_status1)
 
+            
+            
+            
+            #self.signal_course2.emit(d_course2)
+            #self.signal_temp1.emit(d_temp1)
+            
             
             # Preview
             cv_img1 = cv2.resize(camera1, (int(preview_width), int(preview_height)), interpolation = cv2.INTER_AREA)
             cv_img2 = cv2.resize(camera2, (int(preview_width), int(preview_height)), interpolation = cv2.INTER_AREA)
             
             if ret:
+                
                 self.change_pixmap_signal1.emit(cv_img1)
                 self.change_pixmap_signal2.emit(cv_img2)
 
@@ -847,26 +869,27 @@ class App(QWidget):
         return QPixmap.fromImage(p2)
     
     def update_name1(self, d_name1):
+        print ("TEST!")
         _translate = QtCore.QCoreApplication.translate
         self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_name1) + "</span></p></body></html>"))
     def update_name2(self, d_name2):
         _translate = QtCore.QCoreApplication.translate
-        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_name2) + "</span></p></body></html>"))
+        self.name_2.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_name2) + "</span></p></body></html>"))
     def update_course1(self, d_course1):
         _translate = QtCore.QCoreApplication.translate
-        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_course1) + "</span></p></body></html>"))
+        self.course.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_course1) + "</span></p></body></html>"))
     def update_course2(self, d_course2):
         _translate = QtCore.QCoreApplication.translate
-        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_course2) + "</span></p></body></html>"))
+        self.course_2.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_course2) + "</span></p></body></html>"))
     def update_temp1(self, d_temp1):
         _translate = QtCore.QCoreApplication.translate
-        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_temp1) + "</span></p></body></html>"))
+        self.temp.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_temp1) + "</span></p></body></html>"))
     def update_status1(self, d_status1):
         _translate = QtCore.QCoreApplication.translate
-        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_status1) + "</span></p></body></html>"))
+        self.status.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_status1) + "</span></p></body></html>"))
     def update_status2(self, d_status2):
         _translate = QtCore.QCoreApplication.translate
-        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_status2) + "</span></p></body></html>"))
+        self.status_2.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_status2) + "</span></p></body></html>"))
 
 
     def retranslateUi(self, MainWindow):

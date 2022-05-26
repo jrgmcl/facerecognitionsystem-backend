@@ -3,7 +3,7 @@ import os
 import numpy as np
 #from PIL import Image
 
-dataset_path = '/home/pi/Desktop/FACIALRECOGNITION/DATASETS'
+dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
 
 os.chdir("/home/pi/opencv/data/haarcascades")
@@ -62,7 +62,7 @@ def getImagesAndLabels(dataset_path):
             img = cv2.imread(imageFPath, 0)
             img_numpy = np.array(img, 'uint8')
             split_filename = newdir.split('.')
-            id = int(split_filename[0].lstrip('0'))
+            id = int(split_filename[0])
             faces = detector.detectMultiScale(img_numpy)
             
 #             for (x,y,w,h) in faces:
@@ -76,7 +76,7 @@ def getImagesAndLabels(dataset_path):
 print ("\n [INFO] Training faces. It will take a few seconds. Wait ...")
 faces, ids = getImagesAndLabels(dataset_path)
 recognizer.train(faces, np.array(ids))
-recognizer.save('/TRAINER/trainer.yml')
+recognizer.save('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
 print("\n [INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
 
 
