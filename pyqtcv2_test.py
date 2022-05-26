@@ -15,7 +15,7 @@ from images import rsrc
 
 #Connect to Database
 db = MySQLdb.connect("localhost",   #Host 
-                     "root",  #Username
+                     "phpmyadmin",  #Username
                      "frpi",       #Password
                      "fr")   #Database
 cur = db.cursor()
@@ -191,10 +191,7 @@ class VideoThread(QThread):
             
             #Compare recognized face to the database
             for(x1,y1,w1,h1) in faces1:
-                x1 = int(x1 * 0.5)
-                y1 = int(y1 * 0.5)
-                w1 = int(w1 * 0.5)
-                h1 = int(h1 * 0.5)
+
                 cv2.rectangle(camera1, (x1,y1), (x1+w1,y1+h1), (255,255,255), 2)
                 id, confidence = recognizer.predict(camera1[y1:y1+h1,x1:x1+w1])
 
@@ -203,7 +200,7 @@ class VideoThread(QThread):
                     cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
                     row = cur.fetchone()
                     d_name1 = first_name[id] + " " + last_name[id]
-                    d_course1 = str(row[4])
+                    d_course1 = "test"
                     d_status2 = "Recognized! Please wait..."
                     confidence = "  {0}%".format(round(100 - confidence))
                     print("\n [Recognized] " + str(id) + str(first_name[id]) + str(confidence))
@@ -212,10 +209,7 @@ class VideoThread(QThread):
                     confidence = "  {0}%".format(round(100 - confidence))
             
             for(x2,y2,w2,h2) in faces2:
-                x2 = int(x2 * 0.5)
-                y2 = int(y2 * 0.5)
-                w2 = int(w2 * 0.5)
-                h2 = int(h2 * 0.5)
+
                 cv2.rectangle(camera2, (x2,y2), (x2+w2,y2+h2), (255,255,255), 2)
                 id, confidence = recognizer.predict(camera2[y2:y2+h2,x2:x2+w2])
 
@@ -810,13 +804,13 @@ class App(QWidget):
         self.thread.change_pixmap_signal2.connect(self.update_image2)
 
         # Connect to update texts
-        self.thread.signal_name1.connect(self.update_x)
-        self.thread.signal_name2.connect(self.update_x)
-        self.thread.signal_course1.connect(self.update_x)
-        self.thread.signal_course2.connect(self.update_x)
-        self.thread.signal_temp1.connect(self.update_x)
-        self.thread.signal_status1.connect(self.update_x)
-        self.thread.signal_status2.connect(self.update_x)
+        self.thread.signal_name1.connect(self.update_name1)
+        self.thread.signal_name2.connect(self.update_name2)
+        self.thread.signal_course1.connect(self.update_course1)
+        self.thread.signal_course2.connect(self.update_course2)
+        self.thread.signal_temp1.connect(self.update_temp1)
+        self.thread.signal_status1.connect(self.update_status1)
+        self.thread.signal_status2.connect(self.update_status2)
         # start the thread
         self.thread.start()
         
