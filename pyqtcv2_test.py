@@ -50,8 +50,16 @@ d_status1 = "No registered user recognized!"
 d_status2 = "No registered user recognized!"
 
 class VideoThread(QThread):
+    #Declare elements should be updated
     change_pixmap_signal1 = pyqtSignal(np.ndarray)
     change_pixmap_signal2 = pyqtSignal(np.ndarray)
+    signal_name1 = pyqtSignal(str)
+    signal_name2 = pyqtSignal(str)
+    signal_course1 = pyqtSignal(str)
+    signal_course2 = pyqtSignal(str)
+    signal_temp1 = pyqtSignal(float)
+    signal_status1 = pyqtSignal(str)
+    signal_status2 = pyqtSignal(str)
 
     def run(self):
         #File Paths
@@ -138,12 +146,8 @@ class VideoThread(QThread):
                     #Append faces and names to the array
                     faceSamples.insert(id, img_numpy)
                     ids.insert(id, id)
-<<<<<<< HEAD
-=======
-
                     #faceSamples.append(img_numpy)
                     #ids.append(id)
->>>>>>> 9f67b9b1610138dc99fa597802035f0c8497eecd
            
             return faceSamples, ids
 
@@ -159,12 +163,8 @@ class VideoThread(QThread):
         
         while True:
             ret, raw = cap.read()
-<<<<<<< HEAD
-            
-=======
 
             #Set the new size
->>>>>>> 9f67b9b1610138dc99fa597802035f0c8497eecd
             stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) 
             cam1_stretched = stretched[:360, :640] 
             cam2_stretched = stretched[:360, 640:1280]
@@ -200,8 +200,11 @@ class VideoThread(QThread):
 
                 # Check if confidence is less them 100 ==> "0" is perfect match
                 if (confidence < 100):
+                    cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
+                    row = cur.fetchone()
                     d_name1 = first_name[id] + " " + last_name[id]
-                    d_status2 = "Please wait..."
+                    d_course1 = str(row[4])
+                    d_status2 = "Recognized! Please wait..."
                     confidence = "  {0}%".format(round(100 - confidence))
                     print("\n [Recognized] " + str(id) + str(first_name[id]) + str(confidence))
                 else:
@@ -218,11 +221,12 @@ class VideoThread(QThread):
 
                 # Check if confidence is less them 100 ==> "0" is perfect match
                 if (confidence < 100):
-                    id = first_name[id]
+                    cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
+                    row = cur.fetchone()
                     confidence = "  {0}%".format(round(100 - confidence))
                     print("\n [Recognized] " + str(id) + str(confidence))
                     d_name2 = first_name[id] + " " + last_name[id]
-                    #d_course2 = 
+                    d_course2 = str(row[4])
                     d_status2 = "Bye, you may now take your exit."
                     
                     
@@ -232,10 +236,15 @@ class VideoThread(QThread):
                     d_name2 = "Name"
                     d_course2 = "Course"
                     d_status2 = "No registered user recognized!"
-                    
                 
-                
-                    
+                self.signal_name1.emit(d_name1)
+                self.signal_name2.emit(d_name2)
+                self.signal_course1.emit(d_course1)
+                self.signal_course2.emit(d_course2)
+                self.signal_temp1.emit(d_temp1)
+                self.signal_status1.emit(d_status1)
+                self.signal_status2.emit(d_status2)
+
             
             # Preview
             cv_img1 = cv2.resize(camera1, (int(preview_width), int(preview_height)), interpolation = cv2.INTER_AREA)
@@ -248,6 +257,7 @@ class VideoThread(QThread):
 
 class App(QWidget):
     def __init__(self):
+        
         super().__init__()
         
         self.setObjectName("MainWindow")
@@ -798,6 +808,15 @@ class App(QWidget):
         # connect its signal to the update_image slot
         self.thread.change_pixmap_signal1.connect(self.update_image1)
         self.thread.change_pixmap_signal2.connect(self.update_image2)
+
+        # Connect to update texts
+        self.thread.signal_name1.connect(self.update_x)
+        self.thread.signal_name2.connect(self.update_x)
+        self.thread.signal_course1.connect(self.update_x)
+        self.thread.signal_course2.connect(self.update_x)
+        self.thread.signal_temp1.connect(self.update_x)
+        self.thread.signal_status1.connect(self.update_x)
+        self.thread.signal_status2.connect(self.update_x)
         # start the thread
         self.thread.start()
         
@@ -833,8 +852,29 @@ class App(QWidget):
         p2 = convert_to_Qt_format2.scaled(180, 320, Qt.KeepAspectRatio)
         return QPixmap.fromImage(p2)
     
-        
-    
+    def update_name1(self, d_name1):
+        _translate = QtCore.QCoreApplication.translate
+        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_name1) + "</span></p></body></html>"))
+    def update_name2(self, d_name2):
+        _translate = QtCore.QCoreApplication.translate
+        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_name2) + "</span></p></body></html>"))
+    def update_course1(self, d_course1):
+        _translate = QtCore.QCoreApplication.translate
+        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_course1) + "</span></p></body></html>"))
+    def update_course2(self, d_course2):
+        _translate = QtCore.QCoreApplication.translate
+        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_course2) + "</span></p></body></html>"))
+    def update_temp1(self, d_temp1):
+        _translate = QtCore.QCoreApplication.translate
+        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_temp1) + "</span></p></body></html>"))
+    def update_status1(self, d_status1):
+        _translate = QtCore.QCoreApplication.translate
+        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_status1) + "</span></p></body></html>"))
+    def update_status2(self, d_status2):
+        _translate = QtCore.QCoreApplication.translate
+        self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_status2) + "</span></p></body></html>"))
+
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
@@ -890,7 +930,7 @@ class App(QWidget):
         self.Time.setText(str(dt.strftime("%I:%M%p")))
         self.Date_2.setText(str(dt.strftime("%a, %m/%d/%y")))
         self.Time_2.setText(str(dt.strftime("%I:%M%p")))
-        self.name.setText(str(d_name1))
+
         
 if __name__=="__main__":
     app = QApplication(sys.argv)
