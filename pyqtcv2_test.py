@@ -25,18 +25,18 @@ dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
 
 
-#Iniciate id counter
+#Id counter
 id = 0
 
 
 
 #Put the user's name in array
-first_name = ['Unknown']
-last_name = ['Unknown']
+first_name = []
+last_name = []
 for newdir in users:
     split_filename = newdir.split('.')
-    first_name.append(split_filename[1])
-    last_name.append(split_filename[2])
+    first_name.insert(int(split_filename[0]), split_filename[1])
+    last_name.insert(int(split_filename[0]), split_filename[2])
     
 #Get Date & Time before starting the application
 dt = datetime.datetime.now()
@@ -132,12 +132,12 @@ class VideoThread(QThread):
                     img = cv2.imread(imageFPath, 0)
                     img_numpy = np.array(img, 'uint8')
                     split_filename = newdir.split('.')
-                    id = int(split_filename[0].lstrip('0'))
+                    id = int(split_filename[0])
                     faces = detector.detectMultiScale(img_numpy)
                     
                     #Append faces and names to the array
-                    faceSamples.append(img_numpy)
-                    ids.append(id)
+                    faceSamples.insert(id, img_numpy)
+                    ids.insert(id, id)
            
             return faceSamples, ids
 
@@ -147,12 +147,15 @@ class VideoThread(QThread):
         recognizer.save('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
         print("\n [INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
         recognizer.read('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
+        print(ids)
+        print(first_name)
+        print(last_name)
         
         while True:
             
             ret, raw = cap.read()
             
-            
+            stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) 
             cam1_stretched = stretched[:360, :640] 
             cam2_stretched = stretched[:360, 640:1280]
     
@@ -187,10 +190,10 @@ class VideoThread(QThread):
 
                 # Check if confidence is less them 100 ==> "0" is perfect match
                 if (confidence < 100):
-                    id = first_name[id]
+                    d_name1 = first_name[id] + " " + last_name[id]
                     d_status2 = "Please wait..."
                     confidence = "  {0}%".format(round(100 - confidence))
-                    print("\n [Recognized] " + str(id) + str(confidence))
+                    print("\n [Recognized] " + str(id) + str(first_name[id]) + str(confidence))
                 else:
                     id = first_name[0]
                     confidence = "  {0}%".format(round(100 - confidence))
@@ -795,6 +798,7 @@ class App(QWidget):
         #Updates the image_label with a new opencv image
         qt_img1 = self.convert_cv_qt1(cv_img1)
         self.camera1_view.setPixmap(qt_img1)
+        d_name1 = first_name[id] + " " + last_name[id]
         
     def update_image2(self, cv_img2):
         #Updates the image_label with a new opencv image
@@ -876,6 +880,7 @@ class App(QWidget):
         self.Time.setText(str(dt.strftime("%I:%M%p")))
         self.Date_2.setText(str(dt.strftime("%a, %m/%d/%y")))
         self.Time_2.setText(str(dt.strftime("%I:%M%p")))
+        self.name.setText(str(d_name1))
         
 if __name__=="__main__":
     app = QApplication(sys.argv)
