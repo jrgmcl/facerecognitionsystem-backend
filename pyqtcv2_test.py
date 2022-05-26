@@ -138,6 +138,12 @@ class VideoThread(QThread):
                     #Append faces and names to the array
                     faceSamples.insert(id, img_numpy)
                     ids.insert(id, id)
+<<<<<<< HEAD
+=======
+
+                    #faceSamples.append(img_numpy)
+                    #ids.append(id)
+>>>>>>> 9f67b9b1610138dc99fa597802035f0c8497eecd
            
             return faceSamples, ids
 
@@ -152,9 +158,13 @@ class VideoThread(QThread):
         print(last_name)
         
         while True:
-            
             ret, raw = cap.read()
+<<<<<<< HEAD
             
+=======
+
+            #Set the new size
+>>>>>>> 9f67b9b1610138dc99fa597802035f0c8497eecd
             stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) 
             cam1_stretched = stretched[:360, :640] 
             cam2_stretched = stretched[:360, 640:1280]
