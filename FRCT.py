@@ -82,5 +82,5 @@ recognizer.train(faces, np.array(ids))
 recognizer.save('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
 print("\n [INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
 print(ids)
-print
+
 

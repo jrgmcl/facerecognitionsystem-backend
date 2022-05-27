@@ -24,11 +24,8 @@ cur = db.cursor()
 dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
 
-
 #Id counter
 id = 0
-
-
 
 #Put the user's name in array
 first_name = []
@@ -127,25 +124,27 @@ class VideoThread(QThread):
         print ("\n [INFO] Conversion completed. Generating 'Trainer.yml'...")
 
         def getImagesAndLabels(dataset_path):
-
+            index = 0 
             #list_image = os.listdir(user_dataset_path)
             for newdir in users:
                 user_dataset_path = os.path.join(dataset_path, newdir).replace("\\","/")
                 list_image = os.listdir(user_dataset_path)
                 list_image.remove("RAW")
+
+                split_filename = newdir.split('.')
+                id = int(split_filename[0])
+
                 for imagePath in list_image:
                     imageFPath = os.path.join(user_dataset_path, imagePath).replace("\\","/")
-
                     #print(imageFPath)
                     img = cv2.imread(imageFPath, 0)
                     img_numpy = np.array(img, 'uint8')
-                    split_filename = newdir.split('.')
-                    id = int(split_filename[0])
+                    
                     faces = detector.detectMultiScale(img_numpy)
                     
                     #Append faces and names to the array
-                    faceSamples.insert(id, img_numpy)
-                    ids.insert(id, id)
+                    faceSamples.insert(index, img_numpy)
+                    ids.insert(index, id)
                     #faceSamples.append(img_numpy)
                     #ids.append(id)
            
@@ -160,7 +159,6 @@ class VideoThread(QThread):
         recognizer.read('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
         print(ids)
         print(first_name)
-        print(last_name)
         
         while True:
             ret, raw = cap.read()
@@ -203,7 +201,7 @@ class VideoThread(QThread):
                     id, confidence = recognizer.predict(camera1[y1:y1+h1,x1:x1+w1])
 
                     # Check if confidence is less them 100 ==> "0" is perfect match
-                    if (confidence < 100):
+                    if (confidence < 55):
                         cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
                         row = cur.fetchone()
                         d_name1 = first_name[id] + " " + last_name[id]
@@ -228,7 +226,7 @@ class VideoThread(QThread):
                 id, confidence = recognizer.predict(camera2[y2:y2+h2,x2:x2+w2])
 
                 # Check if confidence is less them 100 ==> "0" is perfect match
-                if (confidence < 100):
+                if (confidence < 55):
                     cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
                     row = cur.fetchone()
                     confidence = "  {0}%".format(round(100 - confidence))
