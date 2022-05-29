@@ -18,19 +18,23 @@ datacount = 0
 faceSamples=[]
 ids = []
 
+#Every Folder
 for newdir in users:
     #Get Every user dataset directories
     user_dataset_path = os.path.join(dataset_path, newdir).replace("\\","/")
     raw_dataset_path = os.path.join(user_dataset_path, "RAW").replace("\\","/")
     list_image = os.listdir(raw_dataset_path)
     
+    #Every File
     for imagePath in list_image:
         imageFPath = os.path.join(raw_dataset_path, imagePath).replace("\\","/")
         img = cv2.imread(imageFPath, 0)
         faces = detector.detectMultiScale(img, 1.05, 50)
-
+        
+        #Every Faces
         for (x,y,w,h) in faces:
             
+            #Every Sizes
             for threesizes in sizes:
                 fsize = (threesizes, threesizes)
                 resized = cv2.resize(img[y:y+h,x:x+w], fsize, interpolation = cv2.INTER_AREA)
