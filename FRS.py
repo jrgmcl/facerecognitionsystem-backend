@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import face_recognition
 
 dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
@@ -71,16 +72,21 @@ while True:
         h = int(h * 0.5)
         cv2.rectangle(preview_cam, (x,y), (x+w,y+h), (0,255,0), 2)
         id, confidence = recognizer.predict(gray[y:y+h,x:x+w])
-
+        
+        confidence_percent = "  {0}%".format(round(confidence))
+        print (confidence_percent)
         # Check if confidence is less them 100 ==> "0" is perfect match
-        if (confidence < 55):
+        if (int(confidence) < 60 and int(confidence) > 40):
             id = first_name[id]
             print (id)
-            confidence = "  {0}%".format(round(100 - confidence))
+            
+            print (confidence)
         else:
             #id = first_name[0]
             print ("Unknown")
-            confidence = "  {0}%".format(round(100 - confidence))
+        
+            
+            print (confidence)
 
     cv2.namedWindow('camera0', cv2.WINDOW_GUI_NORMAL|cv2.WINDOW_AUTOSIZE)
     cv2.moveWindow('camera0', 78, 182)

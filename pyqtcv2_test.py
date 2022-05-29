@@ -23,7 +23,7 @@ cur = db.cursor()
 
 dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
-
+users.sort()
 #Id counter
 id = 0
 
@@ -201,20 +201,21 @@ class VideoThread(QThread):
                     id, confidence = recognizer.predict(camera1[y1:y1+h1,x1:x1+w1])
 
                     # Check if confidence is less them 100 ==> "0" is perfect match
-                    if (confidence < 55):
+                    if (confidence < 60):
                         cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
                         row = cur.fetchone()
+                        print(id)
                         d_name1 = first_name[id] + " " + last_name[id]
                         d_course1 = "test"
                         d_status2 = "Recognized! Please wait..."
-                        confidence = "  {0}%".format(round(100 - confidence))
+                        #confidence = "  {0}%".format(round(100 - confidence))
                         print("\n [Recognized] " + str(id) + str(first_name[id]) + str(confidence))
                         
                         
                         
                     else:
-                        id = first_name[0]
-                        confidence = "  {0}%".format(round(100 - confidence))
+                        #id = first_name[0]
+                        #confidence = "  {0}%".format(round(100 - confidence))
                         d_name1 = "Not Registered!"
                 dname_1 = None
                 
@@ -867,7 +868,7 @@ class App(QWidget):
         return QPixmap.fromImage(p2)
     
     def update_name1(self, d_name1):
-        print ("TEST!")
+        #print ("TEST!")
         _translate = QtCore.QCoreApplication.translate
         self.name.setText(_translate("MainWindow", "<html><head/><body><p align=\"center\"><span style=\" font-size:10pt;\">" + str(d_name1) + "</span></p></body></html>"))
     def update_name2(self, d_name2):

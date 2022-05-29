@@ -5,6 +5,7 @@ import numpy as np
 
 dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
+users.sort()
 
 os.chdir("/home/pi/opencv/data/haarcascades")
 recognizer = cv2.face.LBPHFaceRecognizer_create()
@@ -55,17 +56,20 @@ def getImagesAndLabels(dataset_path):
         user_dataset_path = os.path.join(dataset_path, newdir).replace("\\","/")
         list_image = os.listdir(user_dataset_path)
         list_image.remove("RAW")
+        list_image.sort()
 
         split_filename = newdir.split('.')
         id = int(split_filename[0])
-
+        
+        count_datasets = len(list_image)
+        print (users)
         for imagePath in list_image:
             imageFPath = os.path.join(user_dataset_path, imagePath).replace("\\","/")
             #print(imageFPath)
             img = cv2.imread(imageFPath, 0)
             img_numpy = np.array(img, 'uint8')
             
-#            faces = detector.detectMultiScale(img_numpy)
+            faces = detector.detectMultiScale(img_numpy)
             
 #             for (x,y,w,h) in faces:
 #                 faceSamples.append(img_numpy[y:y+h,x:x+w])
