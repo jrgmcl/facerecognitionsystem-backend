@@ -6,19 +6,7 @@ import pickle
 import time
 
 
-cam = cv2.VideoCapture(0)
 
-cam.set(3, 1280) #Camera Size
-cam.set(4, 720)
-
-width = 1280
-height = 360
-new_size = (width, height) #Camera size for 2 cameras
-
-
-# Size for preview
-preview_height = 640*0.5
-preview_width = height*0.5
 
 sizes = [320, 120, 64]
 sizecount = 0
@@ -36,10 +24,12 @@ users.sort()
 check = bool(os.listdir(pickle_path))
 
 
+
 try:
     o = open(pickle_file, "rb")
     open_p= pickle.load(o)
     o.close()
+    
 except FileNotFoundError:
     o = open(pickle_file, "wb")
     o.write(pickle.dumps({"id": []}))
@@ -59,6 +49,10 @@ dataset_face_encodings = []
 dataset_face_names = []
 pickle_id = open_p["id"]
 
+pickle_id = open_p['id']
+dataset_face_names = open_p['name']
+dataset_face_encodings = open_p['face']
+    
 print(open_p)
 print(check)
 if check == False:
@@ -159,11 +153,21 @@ if check == False:
     o_p.close()
 
 
-    
-print(len(open_p["id"]))
-print(len(open_p["name"]))
-print(len(open_p["face"]))
+
+
+print(pickle_id)
+print(dataset_face_names)
+print(dataset_face_encodings)
           
+
+cam = cv2.VideoCapture(0)
+
+#cam.set(3, 1280) #Camera Size
+#cam.set(4, 720)
+
+width = 1280
+height = 360
+new_size = (width, height) #Camera size for 2 cameras
 
 
 
@@ -173,27 +177,25 @@ face_locations = []
 face_encodings = []
 face_names = []
 process_this_frame = True
-
+v = 0
 while True:
     # Grab a single frame of video
-    ret, frame = cam.read()
-    stretched = cv2.resize(frame, new_size, interpolation = cv2.INTER_AREA) #Set the new size
+    ret, raw = cam.read()
+    stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) #Set the new size
     crop1 = stretched[:360, :640] #Crop the camera 1
     crop2 = stretched[:360, 640:1280]
     
     img = cv2.rotate(crop1, cv2.cv2.ROTATE_90_CLOCKWISE) # Flip vertically
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # Resize frame of video to 1/4 size for faster face recognition processing
-    small_frame = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
+    small_frame = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
+    smallest_frame = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
 
-    # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-    rgb_small_frame = img[:, :, ::-1]
 
     # Only process every other frame of video to save time
     if process_this_frame:
         # Find all the faces and face encodings in the current frame of video
-        face_locations = face_recognition.face_locations(rgb_small_frame)
-        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+        face_locations = face_recognition.face_locations(smallest_frame)
+        face_encodings = face_recognition.face_encodings(smallest_frame, face_locations)
 
         face_names = []
         for face_encoding in face_encodings:
@@ -207,7 +209,7 @@ while True:
             face_distances = face_recognition.face_distance(dataset_face_encodings, face_encoding)
             best_match_index = np.argmin(face_distances)
             if matches[best_match_index]:
-                id = pickle_id[best_match_index]
+                id = dataset_face_names[best_match_index]
 
             face_names.append(id)
 
@@ -217,10 +219,10 @@ while True:
     # Display the results
     for (top, right, bottom, left), id in zip(face_locations, face_names):
         # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
+        top *= 2
+        right *= 2
+        bottom *= 2
+        left *= 2
 
         # Draw a box around the face
         cv2.rectangle(img, (left, top), (right, bottom), (0, 0, 255), 2)
@@ -230,8 +232,8 @@ while True:
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(img, id, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-    cv2.namedWindow('camera0', cv2.WINDOW_GUI_NORMAL|cv2.WINDOW_AUTOSIZE)
-    cv2.moveWindow('camera0', 78, 182)
+    #cv2.namedWindow('camera0', cv2.WINDOW_GUI_NORMAL|cv2.WINDOW_AUTOSIZE)
+    #cv2.moveWindow('camera0', 78, 182)
     cv2.imshow('camera0', img)
 
 
