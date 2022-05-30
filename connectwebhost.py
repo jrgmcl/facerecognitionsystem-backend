@@ -7,13 +7,13 @@ db = MySQLdb.connect("localhost",  # your host
 
 # Create a Cursor object to execute queries.
 cur = db.cursor()
-id = 0
+id = 1
 # Select data from table using SQL query.
 cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
  
 # print the first and second columns      
 row = cur.fetchone()
-print (row[0], " ", row[1])
+print (row[0], row[1], row[2], row[3], row[4], row[5])
 
 #for row in cur.fetchall() :
     #print (row[0], " ", row[1])

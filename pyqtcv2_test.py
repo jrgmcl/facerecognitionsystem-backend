@@ -11,6 +11,8 @@ import os
 import sys
 import cv2
 import MySQLdb
+import pickle
+import face_recognition
 from images import rsrc
 
 #Connect to Database
@@ -20,20 +22,6 @@ db = MySQLdb.connect("localhost",   #Host
                      "fr")   #Database
 cur = db.cursor()
 
-
-dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
-users = os.listdir(dataset_path)
-users.sort()
-#Id counter
-id = 0
-
-#Put the user's name in array
-first_name = []
-last_name = []
-for newdir in users:
-    split_filename = newdir.split('.')
-    first_name.insert(int(split_filename[0]), split_filename[1])
-    last_name.insert(int(split_filename[0]), split_filename[2])
     
 #Get Date & Time before starting the application
 dt = datetime.datetime.now()
@@ -45,6 +33,9 @@ d_course2 = "Course"
 d_temp1 = "Temperature"
 d_status1 = "No registered user recognized!"
 d_status2 = "No registered user recognized!"
+
+class VideoThread0(QThread):
+        change_pixmap_signal2 = pyqtSignal(np.ndarray)
 
 class VideoThread(QThread):
     #Declare elements should be updated
@@ -59,215 +50,234 @@ class VideoThread(QThread):
     signal_status2 = pyqtSignal(str)
 
     def run(self):
-        #File Paths
-        os.chdir("/home/pi/opencv/data/haarcascades")
-        recognizer = cv2.face.LBPHFaceRecognizer_create()
+        video_capture = cv2.VideoCapture(0)
 
-        detector = cv2.CascadeClassifier("/home/pi/opencv/data/haarcascades/haarcascade_frontalface_default.xml")
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        #Capture from web cam
-        cap = cv2.VideoCapture(0)
-        cap.set(3, 1280) #Camera Size
-        cap.set(4, 720)
+        sizes = [320, 120, 64]
+        sizecount = 0
+
+        pickle_file = "/home/pi/Desktop/facerecognitionsystem-backend/fr-pickle/pickle/datasets.pickle"
+        pickle_path = "/home/pi/Desktop/facerecognitionsystem-backend/fr-pickle/pickle/"
+        dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/fr-pickle/datasets'
+        users = os.listdir(dataset_path)
+        users.sort()
+
+        check = bool(os.listdir(pickle_path))
+
+
+        try:
+                o = open(pickle_file, "rb")
+                open_p= pickle.load(o)
+                o.close()
         
-        #Camera size for 2 cameras
+        except FileNotFoundError:
+                o = open(pickle_file, "wb")
+                o.write(pickle.dumps({"id": []}))
+                o.close()
+                o_r = open(pickle_file, "rb")
+                open_p= pickle.load(o_r)
+                o_r.close()
+        except EOFError:
+                o = open(pickle_file, "wb")
+                o.write(pickle.dumps({"id": []}))
+                o.close()
+                o_r = open(pickle_file, "rb")
+                open_p= pickle.load(o_r)
+                o_r.close()
+
+        # Create arrays of known face encodings and their names
+        known_id = open_p['id']
+        known_face_encodings = []
+        known_face_names = []
+
+        if check == False:
+                #Every Folder
+                for every_user in users:
+                        userimg_path = os.path.join(dataset_path, every_user).replace("\\","/")
+                        raw_userimg_path = os.path.join(userimg_path, "RAW").replace("\\","/")
+                        
+                        list_RAWimg = os.listdir(raw_userimg_path)
+                        list_RAWimg.sort()
+                        
+                        list_img = os.listdir(userimg_path)
+                        list_img.remove("RAW")
+                        append = bool(list_img)
+                        
+                        split_filename = every_user.split('.')
+                        name = str(split_filename[1]) + " " +str(split_filename[2])
+                        user_id =  split_filename[0]
+                        
+                        not_appendonly = bool(list_RAWimg)
+                        datacount = int(len(list_img)/3)
+                        
+                        if datacount > 0:
+                                datacount += 1
+                        
+                        if not_appendonly == True:
+                        #Every Image
+                                for everyuser_RAWimg in list_RAWimg:
+                                        #print(everyuser_img)
+                                        everyimg_path = os.path.join(raw_userimg_path, everyuser_RAWimg).replace("\\","/")
+                                        
+                                        #Read image
+                                        if append == True:
+                                                for everyuser_img in list_img:
+                                                        userimg_path = os.path.join(userimg_path, everyuser_img).replace("\\","/")
+                                                        eachimg_file = face_recognition.load_image_file(userimg_path)
+                                                        eachimgfaces = face_recognition.face_locations(eachimg_file)
+                                                        img_encoding = face_recognition.face_encodings(eachimg_file, eachimgfaces)[0]
+                                                        
+                                                        known_id.append(user_id)
+                                                        known_face_names.append(name)
+                                                        known_face_encodings.append(img_encoding)
+                                                
+                                        img_file = face_recognition.load_image_file(everyimg_path)
+                                        faces = face_recognition.face_locations(img_file)
+                                        
+                                        for (top, right, bottom, left) in faces:
+                                        
+                                        #Every sizes
+                                                for threesizes in sizes:
+                                                        fsize = (threesizes, threesizes)
+                                                        img_output = cv2.resize(img_file[top:bottom, left:right], fsize, interpolation=cv2.INTER_AREA)
+                                                        
+                                                        
+                                                        img_name = userimg_path + '/' + every_user + '.' + str(sizecount) + str(datacount) + ".jpg"
+                                                        new_img_path = os.path.join(userimg_path, img_name).replace("\\","/")
+                                                        cv2.imwrite(img_name, img_output)
+                                                        
+                                                        
+                                                        eachimg_file = face_recognition.load_image_file(new_img_path)
+                                                        eachimgfaces = face_recognition.face_locations(eachimg_file)
+                                                        img_encoding = face_recognition.face_encodings(eachimg_file, eachimgfaces)[0]
+                                                        
+                                                        known_id.append(user_id)
+                                                        known_face_names.append(name)
+                                                        known_face_encodings.append(img_encoding)
+                                                        sizecount += 1
+                                                
+                                                
+                                                
+                                                datacount += 1
+                                        sizecount = 0
+                                        if os.path.exists(everyimg_path):
+                                                os.remove(everyimg_path)
+                        
+                        else:
+                                for everyuser_img in list_img:
+                                        usereachimg_path = os.path.join(userimg_path, everyuser_img).replace("\\","/")
+                                        print (usereachimg_path)
+                                        eachimg_file = face_recognition.load_image_file(usereachimg_path)
+                                        eachimgfaces = face_recognition.face_locations(eachimg_file)
+                                        img_encoding = face_recognition.face_encodings(eachimg_file, eachimgfaces)[0]
+                                        
+                                        known_id.append(user_id)
+                                        known_face_names.append(name)
+                                        known_face_encodings.append(img_encoding)
+                                        
+                                datacount = 0
+                        
+                insert_to_pickle = {"id": known_id, "name": known_face_names, "face": known_face_encodings}
+                p = open(pickle_file, "wb")
+                p.write(pickle.dumps(insert_to_pickle))
+                p.close()
+                o_p = open(pickle_file, "rb")
+                open_p= pickle.load(o_p)
+                o_p.close()
+        else:
+                known_id = open_p['id']
+                known_face_encodings = open_p['face']
+                known_face_names = open_p['name']
+
+
+        # Initialize some variables
+        face_locations = []
+        face_encodings = []
+        face_names = []
+        process_this_frame = True
+
         width = 1280
         height = 360
-        new_size = (width, height) 
-
-        #Define min window size to be recognized as a face
-        minW = 640*0.4
-        minH = height*0.4
-
-        # Size for preview
-        preview_height = 640*0.5
-        preview_width = height*0.5
-        
-        #Photo convert sizes
-        sizes = [448, 320, 128]
-        sizecount = 0
-        datacount = 0
-        
-        faceSamples=[]
-        ids = []
-        
-        
-        for newdir in users:
-            #Get Every user dataset directories
-            user_dataset_path = os.path.join(dataset_path, newdir).replace("\\","/")
-            raw_dataset_path = os.path.join(user_dataset_path, "RAW").replace("\\","/")
-            list_image = os.listdir(raw_dataset_path)
-            
-            for imagePath in list_image:
-                imageFPath = os.path.join(raw_dataset_path, imagePath).replace("\\","/")
-                img = cv2.imread(imageFPath, 0)
-                faces = detector.detectMultiScale(img, 1.05, 50)
-
-                for (x,y,w,h) in faces:
-                    
-                    for threesizes in sizes:
-                        fsize = (threesizes, threesizes)
-                        resized = cv2.resize(img[y:y+h,x:x+w], fsize, interpolation = cv2.INTER_AREA)
-                        cv2.imwrite(user_dataset_path + '/' + newdir + '.' + str(sizecount) + str(datacount) + ".jpg", resized)
-                        print("\n [INFO] Converted " + imagePath + " to " + newdir + '.' + str(sizecount) + str(datacount) + ".jpg")
-                        sizecount += 1
-
-                    datacount += 1
-                    
-                sizecount = 0
-                if os.path.exists(imageFPath):
-                    os.remove(imageFPath)
-                    
-            datacount = 0
-            
-                        
-        print ("\n [INFO] Conversion completed. Generating 'Trainer.yml'...")
-
-        def getImagesAndLabels(dataset_path):
-            index = 0 
-            #list_image = os.listdir(user_dataset_path)
-            for newdir in users:
-                user_dataset_path = os.path.join(dataset_path, newdir).replace("\\","/")
-                list_image = os.listdir(user_dataset_path)
-                list_image.remove("RAW")
-
-                split_filename = newdir.split('.')
-                id = int(split_filename[0])
-
-                for imagePath in list_image:
-                    imageFPath = os.path.join(user_dataset_path, imagePath).replace("\\","/")
-                    #print(imageFPath)
-                    img = cv2.imread(imageFPath, 0)
-                    img_numpy = np.array(img, 'uint8')
-                    
-                    faces = detector.detectMultiScale(img_numpy)
-                    
-                    #Append faces and names to the array
-                    faceSamples.insert(index, img_numpy)
-                    ids.insert(index, id)
-                    #faceSamples.append(img_numpy)
-                    #ids.append(id)
-           
-            return faceSamples, ids
-
-        print ("\n [INFO] Training faces. It will take a few seconds. Wait ...")
-        faces, ids = getImagesAndLabels(dataset_path)
-        recognizer.train(faces, np.array(ids))
-        os.remove('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
-        recognizer.save('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
-        print("\n [INFO] {0} faces trained. Exiting Program".format(len(np.unique(ids))))
-        recognizer.read('/home/pi/Desktop/facerecognitionsystem-backend/TRAINER/trainer.yml')
-        print(ids)
-        print(first_name)
+        new_size = (width, height) #Camera size for 2 cameras
         
         while True:
-            ret, raw = cap.read()
+                # Grab a single frame of video
+                ret, img = video_capture.read()
+                stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
+                crop1 = stretched[:360, :640] #Crop the camera 1
+                crop2 = stretched[:360, 640:1280]
+                frame = cv2.rotate(crop1, cv2.cv2.ROTATE_90_CLOCKWISE)
+                # Resize frame of video to 1/4 size for faster face recognition processing
+                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+                preview = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
 
-            #Set the new size
-            stretched = cv2.resize(raw, new_size, interpolation = cv2.INTER_AREA) 
-            cam1_stretched = stretched[:360, :640] 
-            cam2_stretched = stretched[:360, 640:1280]
-    
-            cam1_colored = cv2.rotate(cam1_stretched, cv2.cv2.ROTATE_90_CLOCKWISE)
-            cam2_colored = cv2.rotate(cam2_stretched, cv2.cv2.ROTATE_90_CLOCKWISE)
-            camera1 = cv2.cvtColor(cam1_colored, cv2.COLOR_BGR2GRAY)
-            camera2 = cv2.cvtColor(cam2_colored, cv2.COLOR_BGR2GRAY)
-            
-            #Recognize face on camera 1 & 2
-            faces1 = detector.detectMultiScale(
-                                            camera1,
-                                            scaleFactor = 1.11,
-                                            minNeighbors = 20,
-                                            minSize = (int(minW), int(minH)),
-                                           )
-            
-            faces2 = detector.detectMultiScale(
-                                            camera2,
-                                            scaleFactor = 1.11,
-                                            minNeighbors = 20,
-                                            minSize = (int(minW), int(minH)),
-                                           )
-            x1 = faces1
-            if len(x1) == 0:
-                d_name1 = "---"
-                d_course1 = "---"
-                d_status1 = "Please position your face in the middle of the camera"
-            
-            else:
-                #Compare recognized face to the database
-                for(x1,y1,w1,h1) in faces1:
+                # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+                rgb_small_frame = small_frame[:, :, ::-1]
 
-                    cv2.rectangle(camera1, (x1,y1), (x1+w1,y1+h1), (255,255,255), 2)
-                    id, confidence = recognizer.predict(camera1[y1:y1+h1,x1:x1+w1])
+                # Only process every other frame of video to save time
+                if process_this_frame:
+                        # Find all the faces and face encodings in the current frame of video
+                        face_locations = face_recognition.face_locations(rgb_small_frame)
+                        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
-                    # Check if confidence is less them 100 ==> "0" is perfect match
-                    if (confidence < 60):
-                        cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
-                        row = cur.fetchone()
-                        print(id)
-                        d_name1 = first_name[id] + " " + last_name[id]
-                        d_course1 = "test"
-                        d_status2 = "Recognized! Please wait..."
-                        #confidence = "  {0}%".format(round(100 - confidence))
-                        print("\n [Recognized] " + str(id) + str(first_name[id]) + str(confidence))
-                        
-                        
-                        
-                    else:
-                        #id = first_name[0]
-                        #confidence = "  {0}%".format(round(100 - confidence))
-                        d_name1 = "Not Registered!"
-                dname_1 = None
-                
-                
-            
-            for(x2,y2,w2,h2) in faces2:
+                        face_names = []
+                        for face_encoding in face_encodings:
+                                # See if the face is a match for the known face(s)
+                                matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+                                name = "Unknown"
 
-                cv2.rectangle(camera2, (x2,y2), (x2+w2,y2+h2), (255,255,255), 2)
-                id, confidence = recognizer.predict(camera2[y2:y2+h2,x2:x2+w2])
+                                # # If a match was found in known_face_encodings, just use the first one.
+                                # if True in matches:
+                                # Or instead, use the known face with the smallest distance to the new face
+                                face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                                best_match_index = np.argmin(face_distances)
+                                if matches[best_match_index]:
+                                        name = known_id[best_match_index]
+                                        cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(name) + ";")
+                                        row = cur.fetchone()
+                                        d_name1 = (row[1], row[2])
+                                        d_course1 = row[4]
+                                        
 
-                # Check if confidence is less them 100 ==> "0" is perfect match
-                if (confidence < 55):
-                    cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(id) + ";")
-                    row = cur.fetchone()
-                    confidence = "  {0}%".format(round(100 - confidence))
-                    print("\n [Recognized] " + str(id) + str(confidence))
-                    d_name2 = first_name[id] + " " + last_name[id]
-                    d_course2 = str(row[4])
-                    d_status2 = "Bye, you may now take your exit."
-                    self.signal_name2.emit(d_name2)
-                    self.signal_course2.emit(d_course2)
-                    self.signal_status2.emit(d_status2)
-                    
-                    
-                else:
-                    id = first_name[0]
-                    confidence = "  {0}%".format(round(100 - confidence))
-                    d_name2 = "Name"
-                    d_course2 = "Course"
-                    d_status2 = "No registered user recognized!"
-                    self.signal_status2.emit(d_status2)
-                
-            
-            self.signal_name1.emit(d_name1)
-            self.signal_course1.emit(d_course1)
-            self.signal_status1.emit(d_status1)
+                                face_names.append(name)
 
+                #process_this_frame = not process_this_frame
+
+
+                # Display the results
+                for (top, right, bottom, left), name in zip(face_locations, face_names):
+                        # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+                        top *= 2
+                        right *= 2
+                        bottom *= 2
+                        left *= 2
+
+                        # Draw a box around the face
+                        cv2.rectangle(preview, (left, top), (right, bottom), (0, 0, 255), 1)
+
+                        # Draw a label with a name below the face
+                        cv2.rectangle(preview, (left, bottom + 20), (right, bottom), (0, 0, 255), cv2.FILLED)
+                        font = cv2.FONT_HERSHEY_DUPLEX
+                        cv2.putText(preview, name, (left + 6, bottom + 15), font, 0.5, (255, 255, 255), 1)
+                        d_name1 = name
+                        print(name)
+
+                # Display the resulting image
+                cv2.namedWindow('Video', cv2.WINDOW_GUI_NORMAL|cv2.WINDOW_AUTOSIZE)
+                cv2.moveWindow('Video', 78, 182)
+                cv2.imshow('Video', preview)    
             
+        self.signal_name1.emit(d_name1)
+        self.signal_course1.emit(d_course1)
+        self.signal_status1.emit(d_status1)
+
+
+        #self.signal_course2.emit(d_course2)
+        #self.signal_temp1.emit(d_temp1)
             
-            
-            #self.signal_course2.emit(d_course2)
-            #self.signal_temp1.emit(d_temp1)
-            
-            
-            # Preview
-            cv_img1 = cv2.resize(camera1, (int(preview_width), int(preview_height)), interpolation = cv2.INTER_AREA)
-            cv_img2 = cv2.resize(camera2, (int(preview_width), int(preview_height)), interpolation = cv2.INTER_AREA)
-            
-            if ret:
-                
-                self.change_pixmap_signal1.emit(cv_img1)
-                self.change_pixmap_signal2.emit(cv_img2)
+
+        if ret:
+                self.change_pixmap_signal1.emit(preview)
+                #self.change_pixmap_signal2.emit(cv_img2)
 
 
 class App(QWidget):

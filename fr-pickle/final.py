@@ -7,7 +7,6 @@ import time
 
 video_capture = cv2.VideoCapture(0)
 
-
 sizes = [320, 120, 64]
 sizecount = 0
 
@@ -119,9 +118,7 @@ while True:
     cv2.moveWindow('Video', 78, 182)
     cv2.imshow('Video', preview)
 
-    # Hit 'q' on the keyboard to quit!
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+
 
 # Release handle to the webcam
 video_capture.release()

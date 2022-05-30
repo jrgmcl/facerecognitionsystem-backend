@@ -45,13 +45,10 @@ except EOFError:
     open_p= pickle.load(o_r)
     o_r.close()
     
-dataset_face_encodings = []
-dataset_face_names = []
-pickle_id = open_p["id"]
+known_face_encodings = []
+known_face_names = []
+known_id = open_p["id"]
 
-pickle_id = open_p['id']
-dataset_face_names = open_p['name']
-dataset_face_encodings = open_p['face']
     
 print(open_p)
 print(check)
@@ -92,9 +89,9 @@ if check == False:
                         eachimgfaces = face_recognition.face_locations(eachimg_file)
                         img_encoding = face_recognition.face_encodings(eachimg_file, eachimgfaces)[0]
                         
-                        pickle_id.append(user_id)
-                        dataset_face_names.append(name)
-                        dataset_face_encodings.append(img_encoding)
+                        known_id.append(user_id)
+                        known_face_names.append(name)
+                        known_face_encodings.append(img_encoding)
                         
                 img_file = face_recognition.load_image_file(everyimg_path)
                 faces = face_recognition.face_locations(img_file)
@@ -116,9 +113,9 @@ if check == False:
                         eachimgfaces = face_recognition.face_locations(eachimg_file)
                         img_encoding = face_recognition.face_encodings(eachimg_file, eachimgfaces)[0]
                         
-                        pickle_id.append(user_id)
-                        dataset_face_names.append(name)
-                        dataset_face_encodings.append(img_encoding)
+                        known_id.append(user_id)
+                        known_face_names.append(name)
+                        known_face_encodings.append(img_encoding)
                         sizecount += 1
                         
                         
@@ -136,28 +133,25 @@ if check == False:
                 eachimgfaces = face_recognition.face_locations(eachimg_file)
                 img_encoding = face_recognition.face_encodings(eachimg_file, eachimgfaces)[0]
                 
-                pickle_id.append(user_id)
-                dataset_face_names.append(name)
-                dataset_face_encodings.append(img_encoding)
+                known_id.append(user_id)
+                known_face_names.append(name)
+                known_face_encodings.append(img_encoding)
                     
         datacount = 0
         
-    print(dataset_face_names)
-    print(dataset_face_encodings)
-    insert_to_pickle = {"id": pickle_id, "name": dataset_face_names, "face": dataset_face_encodings}
+    insert_to_pickle = {"id": known_id, "name": known_face_names, "face": known_face_encodings}
     p = open(pickle_file, "wb")
     p.write(pickle.dumps(insert_to_pickle))
     p.close()
     o_p = open(pickle_file, "rb")
     open_p= pickle.load(o_p)
     o_p.close()
+else:
+    known_id = open_p['id']
+    known_face_encodings = open_p['face']
+    known_face_names = open_p['name']
 
 
-
-
-print(pickle_id)
-print(dataset_face_names)
-print(dataset_face_encodings)
           
 
 cam = cv2.VideoCapture(0)
