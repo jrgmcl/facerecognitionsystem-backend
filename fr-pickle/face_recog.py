@@ -158,10 +158,7 @@ if check == False:
     open_p= pickle.load(o_p)
     o_p.close()
 
-else:
-    p = open("/home/pi/Desktop/facerecognitionsystem-backend/fr-pickle/pickle/datasets.pickle", "rb")
-    p.write(pickle.dumps(insert_to_pickle))
-    p.close()
+
     
 print(len(open_p["id"]))
 print(len(open_p["name"]))
@@ -190,7 +187,7 @@ while True:
     small_frame = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
 
     # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-    rgb_small_frame = small_frame[:, :, ::-1]
+    rgb_small_frame = img[:, :, ::-1]
 
     # Only process every other frame of video to save time
     if process_this_frame:
@@ -201,7 +198,7 @@ while True:
         face_names = []
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+            matches = face_recognition.compare_faces(dataset_face_encodings, face_encoding)
             id = "Unknown"
 
             # # If a match was found in known_face_encodings, just use the first one.
