@@ -14,6 +14,8 @@ import MySQLdb
 import pickle
 import face_recognition
 from images import rsrc
+import serial
+
 
 #Connect to Database
 db = MySQLdb.connect("localhost",   #Host 
