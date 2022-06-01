@@ -25,9 +25,12 @@ void setup()
   mlx.begin(); 
   mlx.writeEmissivity(new_emissivity); 
   servo0.attach(servopin0);
+  servo1.attach(servopin1);
   pinMode(disc0, INPUT_PULLUP);
   pinMode(disc1, INPUT_PULLUP);
+  pinMode(speaker0, OUTPUT);
 }
+
 void loop()
 {
   String data = Serial.readStringUntil('\n');
@@ -35,12 +38,6 @@ void loop()
   if (data == 'unlock0'){
     float tempObject = mlx.readObjectTempC();
     float tempAmbient = mlx.readAmbientTempC();
-    
-    fahrenheit = ((tempObject * 9) / 5 + 32);
-    Serial.print(tempObject);
-    Serial.print(" C, ");
-    Serial.print(fahrenheit);
-    Serial.println(" F");
 
     for (int count = 0; count < 30; count++) {
       byte discState0 = digitalRead(disc0);
@@ -57,13 +54,13 @@ void loop()
         digitalWrite(speaker0, LOW);
         for (int count = 0; count < 30; count++){
           //Lock
-          if (discState0 > 0)
+          if (discState0 > 0){
             servo0.write(180);
             Serial.println("unlocked0");
             break;
           }
-          delay(100);
         }
+          delay(100);
         break;
       }
       delay(100);
@@ -83,3 +80,4 @@ void loop()
       }
       delay(100);
     }
+}
