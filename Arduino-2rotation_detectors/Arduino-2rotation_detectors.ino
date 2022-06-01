@@ -8,10 +8,9 @@
 #define servopin0 7
 #define servopin1 8
 
-#define speaker0 9
 #define speaker0 10
 
-
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 double new_emissivity = 0.35;
 int baselineTemp = 34;
 int celsius = 0;
@@ -24,8 +23,8 @@ void setup()
   Serial.begin(9600);
   mlx.begin(); 
   mlx.writeEmissivity(new_emissivity); 
-  servo0.attach(servopin0);
-  servo1.attach(servopin1);
+  mservo0.attach(servopin0);
+  mservo1.attach(servopin1);
   pinMode(disc0, INPUT_PULLUP);
   pinMode(disc1, INPUT_PULLUP);
   pinMode(speaker0, OUTPUT);
@@ -35,7 +34,7 @@ void loop()
 {
   String data = Serial.readStringUntil('\n');
 
-  if (data == 'unlock0'){
+  if (data == '0'){
     float tempObject = mlx.readObjectTempC();
     float tempAmbient = mlx.readAmbientTempC();
 
@@ -43,39 +42,45 @@ void loop()
       byte discState0 = digitalRead(disc0);
 
       if (tempObject < baselineTemp) {
-        servo0.write(180);
+        mservo0.write(180);
       }
       else if (tempObject > baselineTemp + 1) {
+        
         //Unlock Servo
-        Serial.println (tempObject);
-        servo0.write(100);
+        mservo0.write(100);
         digitalWrite(speaker0, HIGH);
         delay(50);
         digitalWrite(speaker0, LOW);
         for (int count = 0; count < 30; count++){
           //Lock
           if (discState0 > 0){
-            servo0.write(180);
-            Serial.println("unlocked0");
+            digitalWrite(speaker0, HIGH);
+            delay(100);
+            digitalWrite(speaker0, LOW);
+            mservo0.write(180);
+            Serial.println("1");
             break;
           }
-        }
           delay(100);
+        }
         break;
       }
       delay(100);
     }
-
-  else if (data == 'unlock1'){
+  }
+}
+  else if (data == '2'){
     //Unlock
-    servo1.write(180);
+    mservo1.write(100);
     for (int count = 0; count < 30; count++) {
       byte discState1 = digitalRead(disc1);
-
       //Lock
-      if (discState1 > 0)
-        servo0.write(100);
-        Serial.println("unlocked1");
+      if (discState1 > 0){
+        digitalWrite(speaker0, HIGH);
+        delay(100);
+        digitalWrite(speaker0, LOW);
+        mservo0.write(180);
+        Serial.println("3");
         break;
       }
       delay(100);

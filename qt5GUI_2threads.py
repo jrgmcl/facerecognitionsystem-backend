@@ -174,88 +174,6 @@ else:
 
 
 
-class VideoThread0(QThread):
-    change_pixmap_signal2 = pyqtSignal(np.ndarray)
-    signal_name2 = pyqtSignal(str)
-    signal_course2 = pyqtSignal(str)
-    signal_status2 = pyqtSignal(str)
-
-    def run0(self):
-        video_capture0 = cv2.VideoCapture(0)
-        face_locations = []
-        face_encodings = []
-        face_names = []
-        process_this_frame = True
-
-        width = 1280
-        height = 360
-        new_size = (width, height) #Camera size for 2 cameras
-        while True:
-            # Grab a single frame of video
-            ret, img0 = video_capture0.read()
-            stretched = cv2.resize(img0, new_size, interpolation = cv2.INTER_AREA)
-            crop2 = stretched[:360, 640:1280]
-            frame0 = cv2.rotate(crop2, cv2.cv2.ROTATE_90_CLOCKWISE)
-            # Resize frame of video to 1/4 size for faster face recognition processing
-            small_frame = cv2.resize(frame0, (0, 0), fx=0.25, fy=0.25)
-            preview0 = cv2.resize(frame0, (0, 0), fx=0.5, fy=0.5)
-
-            # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-            rgb_small_frame = small_frame[:, :, ::-1]
-
-            # Only process every other frame of video to save time
-            if process_this_frame:
-                # Find all the faces and face encodings in the current frame of video
-                face_locations = face_recognition.face_locations(rgb_small_frame)
-                face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
-
-                face_names = []
-                for face_encoding in face_encodings:
-                    # See if the face is a match for the known face(s)
-                    matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-                    name = "Unknown"
-
-                    # # If a match was found in known_face_encodings, just use the first one.
-                    # if True in matches:
-                    # Or instead, use the known face with the smallest distance to the new face
-                    face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-                    best_match_index = np.argmin(face_distances)
-                    if matches[best_match_index]:
-                        name = known_id[best_match_index]
-                        cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(name) + ";")
-                        row = cur.fetchone()
-                        d_name2 = (row[1], row[2])
-                        d_course2 = row[4]
-                            
-                    face_names.append(name)
-
-            #process_this_frame = not process_this_frame
-
-            # Display the results
-            for (top, right, bottom, left), name in zip(face_locations, face_names):
-                # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-                top *= 2
-                right *= 2
-                bottom *= 2
-                left *= 2
-
-                # Draw a box around the face
-                cv2.rectangle(preview0, (left, top), (right, bottom), (0, 0, 255), 1)
-
-                # Draw a label with a name below the face
-                cv2.rectangle(preview0, (left, bottom + 20), (right, bottom), (0, 0, 255), cv2.FILLED)
-                font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(preview0, name, (left + 6, bottom + 15), font, 0.5, (255, 255, 255), 1)
-                d_name2 = name
-                print(name)    
-            
-            self.signal_name1.emit(d_name2)
-            self.signal_course1.emit(d_course2)
-            self.signal_status1.emit(d_status2)
-
-            if ret:
-                    self.change_pixmap_signal2.emit(preview0)
-
 class VideoThread(QThread):
     #Declare elements should be updated
     change_pixmap_signal1 = pyqtSignal(np.ndarray)
@@ -263,8 +181,18 @@ class VideoThread(QThread):
     signal_course1 = pyqtSignal(str)
     signal_temp1 = pyqtSignal(float)
     signal_status1 = pyqtSignal(str)
-
+    signal_name2 = pyqtSignal(str)
+    signal_course2 = pyqtSignal(str)
+    signal_status2 = pyqtSignal(str)
+    
     def run(self):
+        d_name1 = "Name"
+        d_name2 = "Name"
+        d_course1 = "Course"
+        d_course2 = "Course"
+        d_temp1 = "Temperature"
+        d_status1 = "No registered user recognized!"
+        d_status2 = "No registered user recognized!"
         video_capture = cv2.VideoCapture(0)
 
         # Initialize some variables
@@ -313,7 +241,10 @@ class VideoThread(QThread):
                         row = cur.fetchone()
                         d_name1 = (row[1], row[2])
                         d_course1 = row[4]
-                            
+                    else:
+                        d_name1 = "---"
+                        d_course1 = "---"
+                        d_status1 = "No face detected"
                     face_names.append(name)
 
             #process_this_frame = not process_this_frame
@@ -339,6 +270,10 @@ class VideoThread(QThread):
             self.signal_name1.emit(d_name1)
             self.signal_course1.emit(d_course1)
             self.signal_status1.emit(d_status1)
+            #self.signal_temp1.emit(d_temp1)
+            self.signal_name2.emit(d_name2)
+            self.signal_course2.emit(d_course2)
+            self.signal_status2.emit(d_status2)
 
 
         #self.signal_course2.emit(d_course2)
@@ -346,7 +281,7 @@ class VideoThread(QThread):
             
 
             if ret:
-                    self.change_pixmap_signal1.emit(preview)
+                self.change_pixmap_signal1.emit(preview)
 
 
 class App(QWidget):
@@ -899,22 +834,20 @@ class App(QWidget):
         self.camera2_view.setGeometry(QtCore.QRect(40, 80, 180, 320))
         # create the video capture thread
         self.thread = VideoThread()
-        self.thread0 = VideoThread0()
         # connect its signal to the update_image slot
         self.thread.change_pixmap_signal1.connect(self.update_image1)
-        self.thread0.change_pixmap_signal2.connect(self.update_image2)
 
         # Connect to update texts
         self.thread.signal_name1.connect(self.update_name1)
-        self.thread0.signal_name2.connect(self.update_name2)
+        self.thread.signal_name2.connect(self.update_name2)
         self.thread.signal_course1.connect(self.update_course1)
-        self.thread0.signal_course2.connect(self.update_course2)
+        self.thread.signal_course2.connect(self.update_course2)
         self.thread.signal_temp1.connect(self.update_temp1)
         self.thread.signal_status1.connect(self.update_status1)
-        self.thread0.signal_status2.connect(self.update_status2)
+        self.thread.signal_status2.connect(self.update_status2)
         # start the thread
         self.thread.start()
-        self.thread0.start()
+
         
 
 
@@ -923,7 +856,7 @@ class App(QWidget):
         #Updates the image_label with a new opencv image
         qt_img1 = self.convert_cv_qt1(cv_img1)
         self.camera1_view.setPixmap(qt_img1)
-        d_name1 = first_name[id] + " " + last_name[id]
+        #d_name1 = first_name[id] + " " + last_name[id]
         
     def update_image2(self, cv_img2):
         #Updates the image_label with a new opencv image
