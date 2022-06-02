@@ -10,7 +10,9 @@
 
 #define speaker0 10
 
+Servo mservo0, mservo1;
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+
 double new_emissivity = 0.35;
 int baselineTemp = 34;
 int celsius = 0;
@@ -33,56 +35,35 @@ void setup()
 void loop()
 {
   String data = Serial.readStringUntil('\n');
-
-  if (data == '0'){
+  Serial.println("test");
+  if (data == "5") {
     float tempObject = mlx.readObjectTempC();
     float tempAmbient = mlx.readAmbientTempC();
-
+    mservo0.write(100);
+    digitalWrite(speaker0, HIGH);
+    delay(50);
+    digitalWrite(speaker0, LOW);
     for (int count = 0; count < 30; count++) {
-      byte discState0 = digitalRead(disc0);
-
-      if (tempObject < baselineTemp) {
-        mservo0.write(180);
-      }
-      else if (tempObject > baselineTemp + 1) {
-        
-        //Unlock Servo
-        mservo0.write(100);
-        digitalWrite(speaker0, HIGH);
-        delay(50);
-        digitalWrite(speaker0, LOW);
-        for (int count = 0; count < 30; count++){
-          //Lock
-          if (discState0 > 0){
-            digitalWrite(speaker0, HIGH);
-            delay(100);
-            digitalWrite(speaker0, LOW);
-            mservo0.write(180);
-            Serial.println("1");
-            break;
-          }
-          delay(100);
-        }
-        break;
-      }
       delay(100);
     }
+    mservo0.write(180);
   }
-}
-  else if (data == '2'){
-    //Unlock
+
+
+  else if (data == "4"){
     mservo1.write(100);
+    digitalWrite(speaker0, HIGH);
+    delay(100);
+    digitalWrite(speaker0, LOW);
     for (int count = 0; count < 30; count++) {
-      byte discState1 = digitalRead(disc1);
-      //Lock
-      if (discState1 > 0){
-        digitalWrite(speaker0, HIGH);
-        delay(100);
-        digitalWrite(speaker0, LOW);
-        mservo0.write(180);
-        Serial.println("3");
-        break;
-      }
+      
       delay(100);
     }
+    
+    mservo1.write(180);
+  }
+  else{
+    mservo0.write(180);
+    mservo1.write(180);
+  }
 }

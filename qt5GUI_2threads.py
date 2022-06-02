@@ -14,7 +14,7 @@ import MySQLdb
 import pickle
 import face_recognition
 from images import rsrc
-import serial
+import serial, time
 
 
 #Connect to Database
@@ -173,10 +173,11 @@ else:
     known_face_names = open_p['name']
 
 
-
+print(known_face_names)
 class VideoThread(QThread):
     #Declare elements should be updated
     change_pixmap_signal1 = pyqtSignal(np.ndarray)
+    change_pixmap_signal2 = pyqtSignal(np.ndarray)
     signal_name1 = pyqtSignal(str)
     signal_course1 = pyqtSignal(str)
     signal_temp1 = pyqtSignal(float)
@@ -205,67 +206,141 @@ class VideoThread(QThread):
         height = 360
         new_size = (width, height) #Camera size for 2 cameras
         
+        arduino = serial.Serial("/dev/ttyACM0", 9600, timeout=1)
+        
+        m = 0
+        m2 = 0
+        
+        # Display the results
         while True:
             # Grab a single frame of video
             ret, img = video_capture.read()
             stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
             crop1 = stretched[:360, :640] #Crop the camera 1
+            crop2 = stretched[:360, 640:1280]
             frame = cv2.rotate(crop1, cv2.cv2.ROTATE_90_CLOCKWISE)
+            frame2 = cv2.rotate(crop2, cv2.cv2.ROTATE_90_CLOCKWISE)
             # Resize frame of video to 1/4 size for faster face recognition processing
+            small_frame2 = cv2.resize(frame2, (0, 0), fx=0.25, fy=0.25)
+            preview2 = cv2.resize(frame2, (0, 0), fx=0.5, fy=0.5)
             small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
             preview = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
 
             # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
             rgb_small_frame = small_frame[:, :, ::-1]
+            rgb_small_frame2 = small_frame2[:, :, ::-1]
 
             # Only process every other frame of video to save time
             if process_this_frame:
                 # Find all the faces and face encodings in the current frame of video
                 face_locations = face_recognition.face_locations(rgb_small_frame)
                 face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+                face_locations2 = face_recognition.face_locations(rgb_small_frame2)
+                face_encodings2 = face_recognition.face_encodings(rgb_small_frame2, face_locations2)
+                if len(face_locations2) == 0 :
+                    name2 = "---"
 
-                face_names = []
-                for face_encoding in face_encodings:
-                    # See if the face is a match for the known face(s)
-                    matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-                    name = "Unknown"
+                    d_name2 = "---"
+                    d_course2 = "---"
+                    d_status2 = "No Face detected"
+                else:
+                    face_names = []
+                    for face_encoding in face_encodings2:
+                        # See if the face is a match for the known face(s)
+                        matches2 = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance = 0.6)
+                        
+                        name2 = "---"
 
-                    # # If a match was found in known_face_encodings, just use the first one.
-                    # if True in matches:
-                    # Or instead, use the known face with the smallest distance to the new face
-                    face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-                    best_match_index = np.argmin(face_distances)
-                    if matches[best_match_index]:
-                        name = known_id[best_match_index]
-                        cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(name) + ";")
-                        row = cur.fetchone()
-                        d_name1 = (row[1], row[2])
-                        d_course1 = row[4]
-                    else:
-                        d_name1 = "---"
-                        d_course1 = "---"
-                        d_status1 = "No face detected"
-                    face_names.append(name)
+                        # # If a match was found in known_face_encodings, just use the first one.
+                        if False in matches2:
+                            name2 = "---"
+                            d_name2 = "---"
+                            d_course2 = "---"
+                            d_status2 = "Not Recognized!"
+                        # Or instead, use the known face with the smallest distance to the new face
+                        face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                        best_match_index = np.argmin(face_distances)
+                        if matches2[best_match_index]:
+                            name2 = known_id[best_match_index]
+                            cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(name2) + ";")
+                            row2 = cur.fetchone()
+                            d_name2 = (row2[1] + " " + row2[2])
+                            d_course2 = row2[4]
+                            
+                            
+                            if m2 == 0 :
+                                d_status2 = "Please proceed!"
+                                arduino.write(b"4\n")
+                                arduino.write(b"\n")
+                                m2 += 1
+                                time.sleep(1)
+                            elif m2 > 3:
+                                m2 = 0
+                            elif m2 > 0:
+                                m2 += 1
+                                time.sleep(1)
+                            
+                            
+                            
+                            
+
+                        face_names.append(name2)
+                        
+                if len(face_locations) == 0 :
+                    name = "---"
+
+                    d_name1 = "---"
+                    d_course1 = "---"
+                    d_status1 = "No Face detected"
+                    
+                else:
+                    face_names = []
+                    for face_encoding in face_encodings:
+                        # See if the face is a match for the known face(s)
+                        matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance = 0.6)
+                        
+                        name = "---"
+
+                        # # If a match was found in known_face_encodings, just use the first one.
+                        if False in matches:
+                            name = "---"
+                            d_name1 = "---"
+                            d_course1 = "---"
+                            d_status1 = "Not Recognized!"
+                        # Or instead, use the known face with the smallest distance to the new face
+                        face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+                        best_match_index = np.argmin(face_distances)
+                        if matches[best_match_index]:
+                            name = known_id[best_match_index]
+                            cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(name) + ";")
+                            row = cur.fetchone()
+                            d_name1 = (row[1] + " " + row[2])
+                            d_course1 = row[4]
+                            
+                            
+                            if m == 0 :
+                                d_status1 = "Please proceed!"
+                                arduino.write(b"5\n")
+                                arduino.write(b"\n")
+                                m += 1
+                                time.sleep(1)
+                            elif m > 3:
+                                m = 0
+                            elif m > 0:
+                                m += 1
+                                time.sleep(1)
+                            
+                            
+                            
+                            
+
+                        face_names.append(name)
 
             #process_this_frame = not process_this_frame
 
             # Display the results
-            for (top, right, bottom, left), name in zip(face_locations, face_names):
-                # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-                top *= 2
-                right *= 2
-                bottom *= 2
-                left *= 2
 
-                # Draw a box around the face
-                cv2.rectangle(preview, (left, top), (right, bottom), (0, 0, 255), 1)
-
-                # Draw a label with a name below the face
-                cv2.rectangle(preview, (left, bottom + 20), (right, bottom), (0, 0, 255), cv2.FILLED)
-                font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(preview, name, (left + 6, bottom + 15), font, 0.5, (255, 255, 255), 1)
-                d_name1 = name
-                print(name)    
+  
             
             self.signal_name1.emit(d_name1)
             self.signal_course1.emit(d_course1)
@@ -282,6 +357,8 @@ class VideoThread(QThread):
 
             if ret:
                 self.change_pixmap_signal1.emit(preview)
+                self.change_pixmap_signal2.emit(preview2)
+                time.sleep(0.2)
 
 
 class App(QWidget):
@@ -409,7 +486,7 @@ class App(QWidget):
         font = QtGui.QFont()
         font.setFamily("Montserrat Medium")
         self.qr_descrip.setFont(font)
-        self.qr_descrip.setText("<html><head/><body><p align=\"center\"><span style=\" font-size:9pt; font-weight:600; color:#ffffff;\">DESCRIPTION DESCRIPTION DESCRIPTION DESCRIPTION DESCRIPTION DESCRIPTION </span></p></body></html>")
+        self.qr_descrip.setText("<html><head/><body><p align=\"center\"><span style=\" font-size:9pt; font-weight:600; color:#ffffff;\"> Please scan me if you are a visitor or unregistered user! </span></p></body></html>")
         self.qr_descrip.setWordWrap(True)
         self.qr_descrip.setIndent(0)
         self.qr_descrip.setObjectName("qr_descrip")
@@ -417,7 +494,7 @@ class App(QWidget):
         #QR Shape on the 1st Frame "qr"
         self.qr = QtWidgets.QGraphicsView(self.frame0)
         self.qr.setGeometry(QtCore.QRect(160, 600, 200, 200))
-        self.qr.setStyleSheet("background-color: rgb(131, 131, 131);")
+        self.qr.setStyleSheet("background-image: url('../Front-End/images/frame.png'); background-position: center; background-size: 200px 200px;")
         self.qr.setObjectName("qr")
         
         self.bg_1 = QtWidgets.QGraphicsView(self.frame0)
@@ -676,13 +753,13 @@ class App(QWidget):
         font = QtGui.QFont()
         font.setFamily("Montserrat Medium")
         self.qr_descrip_2.setFont(font)
-        self.qr_descrip_2.setText("<html><head/><body><p align=\"center\"><span style=\" font-size:9pt; font-weight:600; color:#ffffff;\">DESCRIPTION DESCRIPTION DESCRIPTION DESCRIPTION DESCRIPTION DESCRIPTION </span></p></body></html>")
+        self.qr_descrip_2.setText("<html><head/><body><p align=\"center\"><span style=\" font-size:9pt; font-weight:600; color:#ffffff;\"> Please scan me if you are a visitor or unregistered user! </span></p></body></html>")
         self.qr_descrip_2.setWordWrap(True)
         self.qr_descrip_2.setIndent(0)
         self.qr_descrip_2.setObjectName("qr_descrip_2")
         self.qr_2 = QtWidgets.QGraphicsView(self.frame0_2)
         self.qr_2.setGeometry(QtCore.QRect(160, 600, 200, 200))
-        self.qr_2.setStyleSheet("background-color: rgb(131, 131, 131);")
+        self.qr_2.setStyleSheet("background-image: url('../Front-End/images/frame.png'); background-position: center; background-size: 200px 200px;")
         self.qr_2.setObjectName("qr_2")
         self.bg_4 = QtWidgets.QGraphicsView(self.frame0_2)
         self.bg_4.setGeometry(QtCore.QRect(0, 425, 520, 425))
@@ -836,6 +913,7 @@ class App(QWidget):
         self.thread = VideoThread()
         # connect its signal to the update_image slot
         self.thread.change_pixmap_signal1.connect(self.update_image1)
+        self.thread.change_pixmap_signal2.connect(self.update_image2)
 
         # Connect to update texts
         self.thread.signal_name1.connect(self.update_name1)
@@ -969,4 +1047,5 @@ if __name__=="__main__":
     timer.timeout.connect(a.update_label)
     timer.start()
     a.show()
+    
     sys.exit(app.exec_())
