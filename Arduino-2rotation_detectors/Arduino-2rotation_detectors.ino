@@ -35,7 +35,6 @@ void setup()
 void loop()
 {
   String data = Serial.readStringUntil('\n');
-  Serial.println("test");
   if (data == "5") {
     float tempObject = mlx.readObjectTempC();
     float tempAmbient = mlx.readAmbientTempC();
@@ -44,10 +43,14 @@ void loop()
     delay(50);
     digitalWrite(speaker0, LOW);
     for (int count = 0; count < 30; count++) {
+      Serial.println(tempObject);
       delay(100);
     }
     mservo0.write(180);
   }
+
+
+  
 
 
   else if (data == "4"){

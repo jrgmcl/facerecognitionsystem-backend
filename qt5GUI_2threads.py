@@ -39,9 +39,9 @@ d_status2 = "No registered user recognized!"
 sizes = [320, 120, 64]
 sizecount = 0
 
-pickle_file = "/home/pi/Desktop/facerecognitionsystem-backend/fr-pickle/pickle/datasets.pickle"
-pickle_path = "/home/pi/Desktop/facerecognitionsystem-backend/fr-pickle/pickle/"
-dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/fr-pickle/datasets'
+pickle_file = "/home/pi/Desktop/facerecognitionsystem-backend/pickle/datasets.pickle"
+pickle_path = "/home/pi/Desktop/facerecognitionsystem-backend/pickle/"
+dataset_path = '/home/pi/Desktop/facerecognitionsystem-backend/datasets'
 users = os.listdir(dataset_path)
 users.sort()
 
@@ -101,7 +101,7 @@ if check == False:
             for everyuser_RAWimg in list_RAWimg:
                 #print(everyuser_img)
                 everyimg_path = os.path.join(raw_userimg_path, everyuser_RAWimg).replace("\\","/")
-                
+                print(everyimg_path)
                 #Read image
                 if append == True:
                     for everyuser_img in list_img:
@@ -128,6 +128,7 @@ if check == False:
                         img_name = userimg_path + '/' + every_user + '.' + str(sizecount) + str(datacount) + ".jpg"
                         new_img_path = os.path.join(userimg_path, img_name).replace("\\","/")
                         cv2.imwrite(img_name, img_output)
+                        print(img_name)
                         
                         
                         eachimg_file = face_recognition.load_image_file(new_img_path)
@@ -157,7 +158,7 @@ if check == False:
                 known_id.append(user_id)
                 known_face_names.append(name)
                 known_face_encodings.append(img_encoding)
-                    
+                
             datacount = 0
             
     insert_to_pickle = {"id": known_id, "name": known_face_names, "face": known_face_encodings}
@@ -272,10 +273,12 @@ class VideoThread(QThread):
                                 d_status2 = "Please proceed!"
                                 arduino.write(b"4\n")
                                 arduino.write(b"\n")
+                                
                                 m2 += 1
                                 time.sleep(1)
                             elif m2 > 3:
                                 m2 = 0
+                                
                             elif m2 > 0:
                                 m2 += 1
                                 time.sleep(1)
@@ -292,12 +295,13 @@ class VideoThread(QThread):
                     d_name1 = "---"
                     d_course1 = "---"
                     d_status1 = "No Face detected"
+                    d_temp1 = float(0)
                     
                 else:
                     face_names = []
                     for face_encoding in face_encodings:
                         # See if the face is a match for the known face(s)
-                        matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance = 0.6)
+                        matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance = 0.45)
                         
                         name = "---"
 
@@ -307,6 +311,7 @@ class VideoThread(QThread):
                             d_name1 = "---"
                             d_course1 = "---"
                             d_status1 = "Not Recognized!"
+                            d_temp1 = float(0)
                         # Or instead, use the known face with the smallest distance to the new face
                         face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
                         best_match_index = np.argmin(face_distances)
@@ -322,6 +327,11 @@ class VideoThread(QThread):
                                 d_status1 = "Please proceed!"
                                 arduino.write(b"5\n")
                                 arduino.write(b"\n")
+                                temp = arduino.readline().decode('utf-8').rstrip()
+                                arduino.flushInput()
+                                print(temp)
+                                if int(temp) > 35:
+                                    d_temp1 = float(temp)
                                 m += 1
                                 time.sleep(1)
                             elif m > 3:
@@ -345,7 +355,7 @@ class VideoThread(QThread):
             self.signal_name1.emit(d_name1)
             self.signal_course1.emit(d_course1)
             self.signal_status1.emit(d_status1)
-            #self.signal_temp1.emit(d_temp1)
+            self.signal_temp1.emit(d_temp1)
             self.signal_name2.emit(d_name2)
             self.signal_course2.emit(d_course2)
             self.signal_status2.emit(d_status2)
@@ -1046,6 +1056,6 @@ if __name__=="__main__":
     timer = QtCore.QTimer()
     timer.timeout.connect(a.update_label)
     timer.start()
-    a.show()
+    a.showFullScreen()
     
     sys.exit(app.exec_())
