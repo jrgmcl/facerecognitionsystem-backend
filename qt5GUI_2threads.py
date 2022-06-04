@@ -15,11 +15,13 @@ import pickle
 import face_recognition
 from images import rsrc
 import serial, time
+from smbus2 import SMBus
+from mlx90614 import MLX90614
 
 
 #Connect to Database
 db = MySQLdb.connect("localhost",   #Host 
-                     "phpmyadmin",  #Username
+                     "root",  #Username
                      "frpi",       #Password
                      "fr")   #Database
 cur = db.cursor()
@@ -268,12 +270,30 @@ class VideoThread(QThread):
                             d_name2 = (row2[1] + " " + row2[2])
                             d_course2 = row2[4]
                             
-                            
+                            dt = datetime.datetime.now()
+                            timeout = dt.strftime("%Y-%m-%d %H:%M:%S")
+                            db_id=int(row2[0])
+                            db_fname=str(row2[1])
+                            db_lname=str(row2[2])
+                            db_studentid=int(row2[3])
+                            db_course=str(row2[4])
+                            db_email=str(row2[5])
+                            db_timeout=str(timeout)
                             if m2 == 0 :
                                 d_status2 = "Please proceed!"
                                 arduino.write(b"4\n")
                                 arduino.write(b"\n")
                                 
+                                cur.execute("SELECT * FROM log WHERE id = " + str(db_id) + ";")
+                                rowdb2 = cur.fetchone()
+                                if (bool(rowdb2)):
+                                    
+                                    db_id=int(row2[0])
+                                    exitlog = """UPDATE log SET time_out = %s WHERE id = %s;"""
+                                    data = (db_timeout, db_id)
+                                    cur.execute(exitlog, data)
+                                    db.commit()
+                                    
                                 m2 += 1
                                 time.sleep(1)
                             elif m2 > 3:
@@ -319,26 +339,70 @@ class VideoThread(QThread):
                             name = known_id[best_match_index]
                             cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(name) + ";")
                             row = cur.fetchone()
-                            d_name1 = (row[1] + " " + row[2])
-                            d_course1 = row[4]
+                            db_id=int(row[0])
                             
+                            #if m != 3:
+                                
+                                    
                             
                             if m == 0 :
                                 d_status1 = "Please proceed!"
                                 arduino.write(b"5\n")
                                 arduino.write(b"\n")
-                                temp = arduino.readline().decode('utf-8').rstrip()
-                                arduino.flushInput()
-                                print(temp)
-                                if int(temp) > 35:
-                                    d_temp1 = float(temp)
+                                
+                                
+                                
+                                db_id=int(row[0])
+                                db_fname=str(row[1])
+                                db_lname=str(row[2])
+                                db_studentid=int(row[3])
+                                db_course=str(row[4])
+                                db_email=str(row[5])
+                                
+
+                                cur.execute("SELECT * FROM log WHERE (time_out IS NULL) AND (id = " + str(db_id) + ");")
+                                logrow = cur.fetchone()
+                                if bool(logrow):
+
+                                    delete = "DELETE FROM log WHERE count = " + str(logrow[0]) + ";"
+                                    cur.execute(delete)
+                                    db.commit()
+                                
+                                log = """INSERT INTO log(
+                                   id, ru_firstname, ru_lastname, ru_course, time_in)
+                                   VALUES (%s, %s, %s, %s, %s)"""
+                                dt = datetime.datetime.now()
+                                timein = dt.strftime("%Y-%m-%d %H:%M:%S")
+                                db_timein = str(timein)
+                                data = (db_id, db_fname, db_lname, db_course, db_timein)
+                                cur.execute(log, data)
+                                db.commit()
                                 m += 1
                                 time.sleep(1)
                             elif m > 3:
+                                d_name1 = (row[1] + " " + row[2])
+                                d_course1 = row[4]
+                                bus = SMBus(1)
+                                sensor = MLX90614(bus, address = 0x5A)
+                                temp = sensor.get_object_1() + 9
+                                print(temp)
+                                
+                                if temp > 30:
+                                    d_temp1 = float(temp)
+                                    cur.execute("SELECT * FROM log WHERE (time_out IS NULL) AND (id = " + str(db_id) + ");")
+                                    temprow = cur.fetchone()
+                                    db_count = int(temprow[0])
+                                    templog = """UPDATE log SET ru_temp = %s WHERE count = %s;"""
+                                    data = (d_temp1, db_count)
+                                    cur.execute(templog, data)
+                                    db.commit()
                                 m = 0
                             elif m > 0:
+                                
                                 m += 1
                                 time.sleep(1)
+                                
+                            
                             
                             
                             
