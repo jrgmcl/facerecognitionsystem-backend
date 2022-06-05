@@ -40,7 +40,7 @@ void loop()
     float tempAmbient = mlx.readAmbientTempC();
     mservo0.write(100);
     digitalWrite(speaker0, HIGH);
-    delay(50);
+    delay(200);
     digitalWrite(speaker0, LOW);
     for (int count = 0; count < 30; count++) {
       Serial.println(tempObject);
@@ -56,7 +56,7 @@ void loop()
   else if (data == "4"){
     mservo1.write(100);
     digitalWrite(speaker0, HIGH);
-    delay(100);
+    delay(200);
     digitalWrite(speaker0, LOW);
     for (int count = 0; count < 30; count++) {
       
@@ -64,6 +64,15 @@ void loop()
     }
     
     mservo1.write(180);
+  }
+  else if (data == "6"){
+    digitalWrite(speaker0, HIGH);
+    delay(50);
+    digitalWrite(speaker0, LOW);
+    delay(50);
+    digitalWrite(speaker0, HIGH);
+    delay(50);
+    digitalWrite(speaker0, LOW);
   }
   else{
     mservo0.write(180);

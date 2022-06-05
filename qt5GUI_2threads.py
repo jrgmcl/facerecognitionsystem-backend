@@ -216,6 +216,7 @@ class VideoThread(QThread):
         
         # Display the results
         while True:
+                
             # Grab a single frame of video
             ret, img = video_capture.read()
             stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
@@ -240,9 +241,9 @@ class VideoThread(QThread):
                 face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
                 face_locations2 = face_recognition.face_locations(rgb_small_frame2)
                 face_encodings2 = face_recognition.face_encodings(rgb_small_frame2, face_locations2)
-                if len(face_locations2) == 0 :
-                    name2 = "---"
 
+                if len(face_locations2) == 0:
+                    name2 = "---"
                     d_name2 = "---"
                     d_course2 = "---"
                     d_status2 = "No Face detected"
@@ -250,7 +251,7 @@ class VideoThread(QThread):
                     face_names = []
                     for face_encoding in face_encodings2:
                         # See if the face is a match for the known face(s)
-                        matches2 = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance = 0.6)
+                        matches2 = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance = 0.45)
                         
                         name2 = "---"
 
@@ -279,6 +280,7 @@ class VideoThread(QThread):
                             db_course=str(row2[4])
                             db_email=str(row2[5])
                             db_timeout=str(timeout)
+                            
                             if m2 == 0 :
                                 d_status2 = "Please proceed!"
                                 arduino.write(b"4\n")
@@ -335,17 +337,15 @@ class VideoThread(QThread):
                         # Or instead, use the known face with the smallest distance to the new face
                         face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
                         best_match_index = np.argmin(face_distances)
+                        
                         if matches[best_match_index]:
                             name = known_id[best_match_index]
                             cur.execute("SELECT * FROM rgstrd_users WHERE id = " + str(name) + ";")
                             row = cur.fetchone()
                             db_id=int(row[0])
-                            
-                            #if m != 3:
-                                
-                                    
-                            
-                            if m == 0 :
+
+
+                            if m == 0:
                                 d_status1 = "Please proceed!"
                                 arduino.write(b"5\n")
                                 arduino.write(b"\n")
@@ -368,6 +368,13 @@ class VideoThread(QThread):
                                     cur.execute(delete)
                                     db.commit()
                                 
+                                d_name1 = (row[1] + " " + row[2])
+                                d_course1 = row[4]
+                                bus = SMBus(1)
+                                sensor = MLX90614(bus, address = 0x5A)
+                                temp = sensor.get_object_1() + 5
+                                #print(temp)
+
                                 log = """INSERT INTO log(
                                    id, ru_firstname, ru_lastname, ru_course, time_in)
                                    VALUES (%s, %s, %s, %s, %s)"""
@@ -377,30 +384,50 @@ class VideoThread(QThread):
                                 data = (db_id, db_fname, db_lname, db_course, db_timein)
                                 cur.execute(log, data)
                                 db.commit()
-                                m += 1
-                                time.sleep(1)
-                            elif m > 3:
+                                
+                                time.sleep(0.5)
+                                m+=1
+                                
+                            elif m > 6:
+                                d_name1 = "---"
+                                d_course1 = "---"
+                                m = 0
+                                
+                            elif m > 0:
                                 d_name1 = (row[1] + " " + row[2])
                                 d_course1 = row[4]
-                                bus = SMBus(1)
-                                sensor = MLX90614(bus, address = 0x5A)
-                                temp = sensor.get_object_1() + 9
-                                print(temp)
+                                if bool(temp) == False:
+                    
+                                    bus = SMBus(1)
+                                    sensor = MLX90614(bus, address = 0x5A)
+                                    temp = sensor.get_object_1() + 10
+                                    print(temp)
+                                elif (temp < 30):
+                                    bus = SMBus(1)
+                                    sensor = MLX90614(bus, address = 0x5A)
+                                    temp = sensor.get_object_1() + 10
+                                    print(temp)
+                                else:
+                                    if temp > 30:
+                                        arduino.write(b"6\n")
+                                        arduino.write(b"\n")
+                                        d_temp1 = float(temp)
+                                        cur.execute("SELECT * FROM log WHERE (time_out IS NULL) AND (id = " + str(db_id) + ");")
+                                        temprow = cur.fetchone()
+                                        db_count = int(temprow[0])
+                                        templog = """UPDATE log SET ru_temp = %s WHERE count = %s;"""
+                                        data = (d_temp1, db_count)
+                                        cur.execute(templog, data)
+                                        db.commit()
+                                        d_status1 = "Temperature checked!"
+                                        arduino.write(b"6\n")
+                                        arduino.write(b"\n")
+                                    
+                                m+=1
+                                time.sleep(0.5)
                                 
-                                if temp > 30:
-                                    d_temp1 = float(temp)
-                                    cur.execute("SELECT * FROM log WHERE (time_out IS NULL) AND (id = " + str(db_id) + ");")
-                                    temprow = cur.fetchone()
-                                    db_count = int(temprow[0])
-                                    templog = """UPDATE log SET ru_temp = %s WHERE count = %s;"""
-                                    data = (d_temp1, db_count)
-                                    cur.execute(templog, data)
-                                    db.commit()
-                                m = 0
-                            elif m > 0:
-                                
-                                m += 1
-                                time.sleep(1)
+                            
+                            
                                 
                             
                             
@@ -432,7 +459,7 @@ class VideoThread(QThread):
             if ret:
                 self.change_pixmap_signal1.emit(preview)
                 self.change_pixmap_signal2.emit(preview2)
-                time.sleep(0.2)
+            time.sleep(0.2)
 
 
 class App(QWidget):
@@ -568,7 +595,7 @@ class App(QWidget):
         #QR Shape on the 1st Frame "qr"
         self.qr = QtWidgets.QGraphicsView(self.frame0)
         self.qr.setGeometry(QtCore.QRect(160, 600, 200, 200))
-        self.qr.setStyleSheet("background-image: url('../Front-End/images/frame.png'); background-position: center; background-size: 200px 200px;")
+        self.qr.setStyleSheet("background-image: url('../Front-End/images/entryqr.png'); background-position: center; background-size: 200px 200px;")
         self.qr.setObjectName("qr")
         
         self.bg_1 = QtWidgets.QGraphicsView(self.frame0)
@@ -833,7 +860,7 @@ class App(QWidget):
         self.qr_descrip_2.setObjectName("qr_descrip_2")
         self.qr_2 = QtWidgets.QGraphicsView(self.frame0_2)
         self.qr_2.setGeometry(QtCore.QRect(160, 600, 200, 200))
-        self.qr_2.setStyleSheet("background-image: url('../Front-End/images/frame.png'); background-position: center; background-size: 200px 200px;")
+        self.qr_2.setStyleSheet("background-image: url('../Front-End/images/exitqr.png'); background-position: center; background-size: 200px 200px;")
         self.qr_2.setObjectName("qr_2")
         self.bg_4 = QtWidgets.QGraphicsView(self.frame0_2)
         self.bg_4.setGeometry(QtCore.QRect(0, 425, 520, 425))
