@@ -217,6 +217,24 @@ class VideoThread(QThread):
         m = 0
         m2 = 0
         
+        
+        cur.execute("SELECT * FROM `rpi`;")
+        rpi = cur.fetchone()[0]
+        if rpi == 'true':
+            while True:
+                ret, img = video_capture.read()
+                stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
+                crop1 = stretched[:360, :640] #Crop the camera 1
+                frame = cv2.rotate(crop1, cv2.cv2.ROTATE_90_CLOCKWISE)
+                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+                preview = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+                
+                if process_this_frame:
+                    face_locations = face_recognition.face_locations(rgb_small_frame)
+                    
+                    if len(face_locations2) == 1:
+                        
+                    
         # Display the results
         while True:
                 
