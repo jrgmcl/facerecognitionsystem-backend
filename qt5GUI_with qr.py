@@ -218,8 +218,18 @@ class VideoThread(QThread):
         m2 = 0
         
         
-        cur.execute("SELECT * FROM `rpi`;")
-        rpi = cur.fetchone()[0]
+        cur.execute("SELECT * FROM `qr_pending-users` WHERE `rpi` = true;")
+        qr_fname = str(cur.fetchone()[1])
+        qr_lname = str(cur.fetchone()[2])
+        qr_studentid = str(cur.fetchone()[3])
+        qr_course = str(cur.fetchone()[4])
+        qr_pin = str(cur.fetchone()[5])
+        rpi = cur.fetchone()[0] #rpi signal true or false
+
+        cur.execute("SELECT * FROM `qr_logs-users`")
+        cur.fetchall()
+        count = cur.rowcount
+
         if rpi == 'true':
             while True:
                 ret, img = video_capture.read()
@@ -231,9 +241,14 @@ class VideoThread(QThread):
                 
                 if process_this_frame:
                     face_locations = face_recognition.face_locations(rgb_small_frame)
-                    
+
                     if len(face_locations2) == 1:
-                        
+                        dt = datetime.datetime.now()
+                        timein = dt.strftime("%Y-%m-%d %H:%M:%S")
+                        db_timein = str(timein)
+                        image_name = count 
+                        iamgepath = 
+                        cv2.imwrite(iamgepath, frame)
                     
         # Display the results
         while True:
@@ -267,7 +282,7 @@ class VideoThread(QThread):
                     name2 = "---"
                     d_name2 = "---"
                     d_course2 = "---"
-                    d_status2 = "No Face detected"
+                    d_status2 = "No Face detected."
                 else:
                     face_names = []
                     for face_encoding in face_encodings2:
@@ -281,7 +296,7 @@ class VideoThread(QThread):
                             name2 = "---"
                             d_name2 = "---"
                             d_course2 = "---"
-                            d_status2 = "Not Recognized!"
+                            d_status2 = "Not Recognized."
                         # Or instead, use the known face with the smallest distance to the new face
                         face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
                         best_match_index = np.argmin(face_distances)
@@ -297,9 +312,7 @@ class VideoThread(QThread):
                             db_id=int(row2[0])
                             db_fname=str(row2[1])
                             db_lname=str(row2[2])
-                            db_studentid=int(row2[3])
                             db_course=str(row2[4])
-                            
                             db_timeout=str(timeout)
                             
                             if m2 == 0 :
@@ -336,10 +349,9 @@ class VideoThread(QThread):
                         
                 if len(face_locations) == 0 :
                     name = "---"
-
                     d_name1 = "---"
                     d_course1 = "---"
-                    d_status1 = "No Face detected"
+                    d_status1 = "No Face detected."
                     d_temp1 = float(0)
                     
                 else:
@@ -355,7 +367,7 @@ class VideoThread(QThread):
                             name = "---"
                             d_name1 = "---"
                             d_course1 = "---"
-                            d_status1 = "Not Recognized!"
+                            d_status1 = "Not Recognized."
                             d_temp1 = float(0)
                         # Or instead, use the known face with the smallest distance to the new face
                         face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
@@ -363,31 +375,26 @@ class VideoThread(QThread):
                         
                         if matches[best_match_index]:
                             name = known_id[best_match_index]
-                            cur.execute("SELECT * FROM `fr_registered-users` WHERE id = " + str(name) + ";")
+                            cur.execute("SELECT * FROM `fr_registered-users` WHERE `id` = " + str(name) + ";")
                             row = cur.fetchone()
                             db_id=int(row[0])
 
 
                             if m == 0:
-                                d_status1 = "Please proceed!"
+                                d_status1 = "Please proceed."
                                 arduino.write(b"5\n")
                                 arduino.write(b"\n")
-                                
-                                
-                                
+                                                     
                                 db_id=int(row[0])
                                 db_fname=str(row[1])
                                 db_lname=str(row[2])
-                                db_studentid=int(row[3])
                                 db_course=str(row[4])
-                                
-                                
 
-                                cur.execute("SELECT * FROM `fr_logs` WHERE (time_out IS NULL) AND (id = " + str(db_id) + ");")
+                                cur.execute("SELECT * FROM `fr_logs` WHERE (`time_out` IS NULL) AND (`id` = " + str(db_id) + ");")
                                 logrow = cur.fetchone()
                                 if bool(logrow):
 
-                                    delete = "DELETE FROM `fr_logs` WHERE count = " + str(logrow[0]) + ";"
+                                    delete = "DELETE FROM `fr_logs` WHERE `count` = " + str(logrow[0]) + ";"
                                     cur.execute(delete)
                                     db.commit()
                                 
@@ -399,7 +406,7 @@ class VideoThread(QThread):
                                 #print(temp)
 
                                 log = """INSERT INTO `fr_logs`(
-                                   id, ru_firstname, ru_lastname, ru_course, time_in)
+                                   `id`, `ru_firstname`, `ru_lastname`, `ru_course`, `time_in`)
                                    VALUES (%s, %s, %s, %s, %s)"""
                                 dt = datetime.datetime.now()
                                 timein = dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -414,13 +421,13 @@ class VideoThread(QThread):
                             elif m > 6:
                                 d_name1 = "---"
                                 d_course1 = "---"
-                                d_status1 = "Please proceed!"
+                                d_status1 = "Please proceed."
                                 m = 0
                                 
                             elif m > 0:
                                 d_name1 = (row[1] + " " + row[2])
                                 d_course1 = row[4]
-                                d_status1 = "Please proceed!"
+                                d_status1 = "Please proceed."
                                 if bool(temp) == False:
                     
                                     bus = SMBus(1)
@@ -440,7 +447,7 @@ class VideoThread(QThread):
                                         cur.execute("SELECT * FROM `fr_logs` WHERE (time_out IS NULL) AND (id = " + str(db_id) + ");")
                                         temprow = cur.fetchone()
                                         db_count = int(temprow[0])
-                                        templog = """UPDATE `fr_logs` SET ru_temp = %s WHERE count = %s;"""
+                                        templog = """UPDATE `fr_logs` SET `ru_temp` = %s WHERE `count` = %s;"""
                                         data = (d_temp1, db_count)
                                         cur.execute(templog, data)
                                         db.commit()
