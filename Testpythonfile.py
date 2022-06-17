@@ -1,5 +1,6 @@
 import os
 import MySQLdb
+import datetime
 
 db = MySQLdb.connect("localhost",   #Host 
                      "root",  #Username
@@ -7,7 +8,9 @@ db = MySQLdb.connect("localhost",   #Host
                      "fr")   #Database
 cur = db.cursor()
 
-cur.execute("SELECT * FROM `qr_pending-users`")
-cur.fetchall()
-count = cur.rowcount
-print (count)
+name = "0"
+
+cur.execute("SELECT * FROM `fr_registered-users` WHERE `id` = " + str(name) + ";")
+row = cur.fetchone()
+
+print(str(row[3]))

@@ -276,11 +276,12 @@ class VideoThread(QThread):
                             
                             dt = datetime.datetime.now()
                             timeout = dt.strftime("%Y-%m-%d %H:%M:%S")
-                            db_id=int(row2[0])
-                            db_fname=str(row2[1])
-                            db_lname=str(row2[2])
-                            db_course=str(row2[4])
-                            db_timeout=str(timeout)
+                            db_id = int(row2[0])
+                            db_fname = str(row2[1])
+                            db_lname = str(row2[2])
+                            db_studentid = int(row2[3])
+                            db_course = str(row2[4])
+                            db_timeout = str(timeout)
                             
                             if m2 == 0 :
                                 d_status2 = "Please proceed."
@@ -344,7 +345,7 @@ class VideoThread(QThread):
                             name = known_id[best_match_index]
                             cur.execute("SELECT * FROM `fr_registered-users` WHERE `id` = " + str(name) + ";")
                             row = cur.fetchone()
-                            db_id=int(row[0])
+                            db_id=str(row[0])
 
 
                             if m == 0:
@@ -352,9 +353,10 @@ class VideoThread(QThread):
                                 arduino.write(b"5\n")
                                 arduino.write(b"\n")
                                                      
-                                db_id=int(row[0])
+                                db_id=str(row[0])
                                 db_fname=str(row[1])
                                 db_lname=str(row[2])
+                                db_studentid = str(row[3])
                                 db_course=str(row[4])
 
                                 cur.execute("SELECT * FROM `fr_logs` WHERE (`time_out` IS NULL) AND (`id` = " + str(db_id) + ");")
@@ -373,12 +375,12 @@ class VideoThread(QThread):
                                 #print(temp)
 
                                 log = """INSERT INTO `fr_logs`(
-                                   `id`, `ru_firstname`, `ru_lastname`, `ru_course`, `time_in`)
-                                   VALUES (%s, %s, %s, %s, %s)"""
+                                   `id`, `ru_firstname`, `ru_lastname`, `ru_studentid`,`ru_course`, `time_in`)
+                                   VALUES (%s, %s, %s, %s, %s, %s)"""
                                 dt = datetime.datetime.now()
                                 timein = dt.strftime("%Y-%m-%d %H:%M:%S")
                                 db_timein = str(timein)
-                                data = (db_id, db_fname, db_lname, db_course, db_timein)
+                                data = (db_id, db_fname, db_lname, db_studentid, db_course, db_timein)
                                 cur.execute(log, data)
                                 db.commit()
                                 

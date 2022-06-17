@@ -216,46 +216,72 @@ class VideoThread(QThread):
         
         m = 0
         m2 = 0
+        q = 0
+        q2 = 0
         
         
-        cur.execute("SELECT * FROM `qr_pending-users` WHERE `rpi` = true;")
-        qr_fname = str(cur.fetchone()[1])
-        qr_lname = str(cur.fetchone()[2])
-        qr_studentid = str(cur.fetchone()[3])
-        qr_course = str(cur.fetchone()[4])
-        qr_pin = str(cur.fetchone()[5])
-        rpi_in = cur.fetchone()[6] #rpi signal true or false
-
-        cur.execute("SELECT * FROM `qr_logs-users`")
-        cur.fetchall()
-        count = cur.rowcount
-
-        if rpi_in == 'true':
-            while True:
-                ret, img = video_capture.read()
-                stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
-                crop1 = stretched[:360, :640] #Crop the camera 1
-                frame = cv2.rotate(crop1, cv2.cv2.ROTATE_90_CLOCKWISE)
-                small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-                preview = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
-                
-                if process_this_frame:
-                    face_locations = face_recognition.face_locations(rgb_small_frame)
-
-                    if len(face_locations2) == 1:
-                        dt = datetime.datetime.now()
-                        timein = dt.strftime("%Y-%m-%d %H:%M:%S")
-                        db_timein = str(timein)
-                        image_name = count 
-                        imagepath = "/home/pi/Desktop/facerecognitionsystem-backend/qr_logs/"+count+"."+db_timein+"."+qr_lname+".jpg"
-                        cv2.imwrite(imagepath, frame)
-                        d_status1 = "Please proceed."
-                        arduino.write(b"5\n")
-                        arduino.write(b"\n")
-                    
+                            
         # Display the results
         while True:
+            cur.execute("SELECT * FROM `qr_pending-users` WHERE `rpi` = 'true';")
+            data = cur.fetchone()
+            if (bool(data)):
+                rpi_in = data[6] #rpi signal true or false
+            else:
+                rpi_in = "false"
+
+            
+            if rpi_in == 'true':
+                qr_fname = str(data[1])
+                qr_lname = str(data[2])
+                qr_studentid = str(data[3])
+                qr_course = str(data[4])
+                qr_pin = str(data[5])
                 
+                while True:
+                    ret, img = video_capture.read()
+                    stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
+                    crop1 = stretched[:360, :640] #Crop the camera 1
+                    frame = cv2.rotate(crop1, cv2.cv2.ROTATE_90_CLOCKWISE)
+                    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+                    preview = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+                    rgb_small_frame = small_frame[:, :, ::-1]
+                    
+                    if process_this_frame:
+                        face_locations = face_recognition.face_locations(rgb_small_frame)
+
+                        if len(face_locations) == 1:
+                            if q == 0:
+                                dt = datetime.datetime.now()
+                                db_timein = str(dt.strftime("%Y-%m-%d %H:%M:%S"))
+                                arduino.write(b"5\n")
+                                arduino.write(b"\n")
+                                d_status1 = "Please proceed."
+                                cur.execute("SELECT * FROM `qr_logs-users` WHERE qr_firstname = '" + str(qr_fname) + "' AND qr_lastname = '"+ str(qr_lname) +"';")
+                                rowdb = cur.fetchone()
+                                q = q + 1 
+                                if (bool(rowdb) == False):
+                                    timein = str(dt.strftime("%Y.%m.%d_%H.%M"))
+                                    image_name = str(count)
+                                    imagepath = str("/home/pi/Desktop/facerecognitionsystem-backend/qr_logs/"+str(count)+"."+str(timein)+"."+str(qr_lname)+".jpg")
+                                    cv2.imwrite(imagepath, frame)
+                                    
+                                    cur.execute("SELECT * FROM `qr_logs-users`")
+                                    count = len(cur.fetchall())
+                                    log = """INSERT INTO `qr_logs-users`(
+                                               `count`, `qr_firstname`, `qr_lastname`, `qr_studentid`, `qr_course`, `qr_pin`, `time_in`, `imgpath`)
+                                               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                                    data = (count, db_fname, db_lname, qr_studentid, db_course, qr_pin, db_timein, imagepath)
+                                    cur.execute(log, data)
+                                    db.commit()
+                                    
+                                
+                                    
+        
+                            elif q > 6:
+                                q = 0
+                            elif q > 0:
+                                q = q + 1  
             # Grab a single frame of video
             ret, img = video_capture.read()
             stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
