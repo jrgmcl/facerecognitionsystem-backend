@@ -224,13 +224,13 @@ class VideoThread(QThread):
         qr_studentid = str(cur.fetchone()[3])
         qr_course = str(cur.fetchone()[4])
         qr_pin = str(cur.fetchone()[5])
-        rpi = cur.fetchone()[0] #rpi signal true or false
+        rpi_in = cur.fetchone()[6] #rpi signal true or false
 
         cur.execute("SELECT * FROM `qr_logs-users`")
         cur.fetchall()
         count = cur.rowcount
 
-        if rpi == 'true':
+        if rpi_in == 'true':
             while True:
                 ret, img = video_capture.read()
                 stretched = cv2.resize(img, new_size, interpolation = cv2.INTER_AREA)
@@ -247,8 +247,11 @@ class VideoThread(QThread):
                         timein = dt.strftime("%Y-%m-%d %H:%M:%S")
                         db_timein = str(timein)
                         image_name = count 
-                        iamgepath = 
-                        cv2.imwrite(iamgepath, frame)
+                        imagepath = "/home/pi/Desktop/facerecognitionsystem-backend/qr_logs/"+count+"."+db_timein+"."+qr_lname+".jpg"
+                        cv2.imwrite(imagepath, frame)
+                        d_status1 = "Please proceed."
+                        arduino.write(b"5\n")
+                        arduino.write(b"\n")
                     
         # Display the results
         while True:
