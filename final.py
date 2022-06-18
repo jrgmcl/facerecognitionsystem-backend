@@ -293,7 +293,7 @@ class VideoThread(QThread):
                                 if (bool(rowdb2)):
                                     
                                     db_id=int(row2[0])
-                                    exitlog = """UPDATE `fr_logs` SET time_out = %s WHERE id = %s;"""
+                                    exitlog = """UPDATE `fr_logs` SET time_out = %s WHERE id = %s AND time_out IS NULL;"""
                                     data = (db_timeout, db_id)
                                     cur.execute(exitlog, data)
                                     db.commit()
