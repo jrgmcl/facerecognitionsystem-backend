@@ -1,0 +1,11 @@
+<RCC>
+  <qresource prefix="bg">
+    <file>resizedbg.jpg</file>
+  </qresource>
+  <qresource prefix="bg_full">
+    <file>BGpic.jpg</file>
+  </qresource>
+  <qresource prefix="logo">
+    <file>logo.png</file>
+  </qresource>
+</RCC>
